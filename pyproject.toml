@@ -1,0 +1,109 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "launch-success"
+version = "1.0.0"
+description = "Pipeline de ML para classificar o sucesso de lançamentos da SpaceX."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Equipe GAIE — FIAP Global Solution 2026" }]
+
+# Runtime dependencies are pinned in requirements.txt for reproducibility.
+# This block keeps the package installable via `pip install -e .`.
+dependencies = [
+    "pandas>=2.2,<2.3",
+    "numpy>=1.26,<2.0",
+    "scikit-learn>=1.5,<1.6",
+    "shap>=0.46,<0.47",
+    "matplotlib>=3.9,<3.10",
+    "seaborn>=0.13,<0.14",
+    "requests>=2.32,<2.33",
+    "pydantic>=2.9,<3.0",
+    "pydantic-settings>=2.5,<3.0",
+    "joblib>=1.4,<1.5",
+    "imbalanced-learn>=0.12,<0.13",
+]
+
+[project.optional-dependencies]
+app = ["streamlit>=1.39,<1.40"]
+boost = ["xgboost>=2.1,<2.2"]
+dev = [
+    "pytest>=8.3,<8.4",
+    "pytest-cov>=5.0,<6.0",
+    "responses>=0.25,<0.26",
+    "ruff>=0.6,<0.7",
+    "black>=24.10,<25.0",
+]
+
+[project.scripts]
+launch-ingest = "launch_success.data.ingestion:main"
+launch-train = "launch_success.pipeline:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+launch_success = ["py.typed"]
+
+# --------------------------------------------------------------------------- #
+# Tooling configuration
+# --------------------------------------------------------------------------- #
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+    "D",   # pydocstyle
+]
+ignore = [
+    "D100", # missing docstring in public module (covered where it matters)
+    "D104", # missing docstring in public package
+    "D107", # missing docstring in __init__
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D101", "D102", "D103", "D105"]   # docstrings not required in tests
+"scripts/*" = ["D103"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-q --strict-markers"
+testpaths = ["tests"]
+pythonpath = ["src"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::FutureWarning",
+]
+
+[tool.coverage.run]
+source = ["launch_success"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]

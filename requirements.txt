@@ -1,0 +1,35 @@
+# Runtime + dev dependencies, pinned for reproducibility (Python 3.11).
+# Install with:  pip install -r requirements.txt
+#
+# --- Core data / ML ---------------------------------------------------------
+numpy==1.26.4
+pandas==2.2.2
+scikit-learn==1.5.2
+scipy==1.13.1
+imbalanced-learn==0.12.4
+joblib==1.4.2
+
+# --- Interpretability -------------------------------------------------------
+shap==0.46.0
+
+# --- Visualisation ----------------------------------------------------------
+matplotlib==3.9.2
+seaborn==0.13.2
+
+# --- Ingestion / config -----------------------------------------------------
+requests==2.32.3
+pydantic==2.9.2
+pydantic-settings==2.5.2
+
+# --- Deployment (Streamlit app) ---------------------------------------------
+streamlit==1.39.0
+
+# --- Optional gradient boosting (registry uses it when available) -----------
+xgboost==2.1.1
+
+# --- Dev / test / lint ------------------------------------------------------
+pytest==8.3.3
+pytest-cov==5.0.0
+responses==0.25.3
+ruff==0.6.9
+black==24.10.0

@@ -1,0 +1,43 @@
+{
+  "model_name": "random_forest",
+  "target": "success",
+  "selection_metric": "f1",
+  "cv_mean": 0.9845729969712362,
+  "cv_std": 0.00455865173594939,
+  "test_metrics": {
+    "accuracy": 0.9625,
+    "precision": 0.9663865546218487,
+    "recall": 0.9956709956709957,
+    "f1": 0.9808102345415778,
+    "roc_auc": 0.771043771043771,
+    "pr_auc": 0.9875787247885714
+  },
+  "feature_columns": [
+    "flight_number",
+    "year",
+    "payload_mass_kg",
+    "flights",
+    "rocket",
+    "orbit",
+    "launch_site",
+    "reused",
+    "gridfins",
+    "legs"
+  ],
+  "numeric_features": [
+    "flight_number",
+    "year",
+    "payload_mass_kg",
+    "flights"
+  ],
+  "categorical_features": [
+    "rocket",
+    "orbit",
+    "launch_site"
+  ],
+  "boolean_features": [
+    "reused",
+    "gridfins",
+    "legs"
+  ]
+}
