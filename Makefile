@@ -18,6 +18,7 @@ venv: ## Cria o ambiente virtual (.venv) com Python 3.11
 
 .PHONY: install
 install: ## Instala dependências + o pacote em modo editável
+	$(BIN)/python -m ensurepip --upgrade  # garante pip (venvs do uv vêm sem pip)
 	$(BIN)/python -m pip install --upgrade pip
 	$(BIN)/python -m pip install -r requirements.txt
 	$(BIN)/python -m pip install -e .

@@ -274,9 +274,11 @@ make lint   # ruff: all checks passed · black: all done
 
 | Nome | RM |
 |------|----|
-| `⟨PREENCHER⟩` | `⟨RM00000⟩` |
-| `⟨PREENCHER⟩` | `⟨RM00000⟩` |
-| `⟨PREENCHER⟩` | `⟨RM00000⟩` |
+| Gustavo Vegi | RM550188 |
+| Pedro Henrique Silva de Morais | RM98804 |
+| Lucas Rodrigues Delfino | RM550196 |
+| Luisa Cristina dos Santos Neves | RM551889 |
+| Gabriel Aparecido Cassalho Xavier | RM99794 |
 
 ---
 
