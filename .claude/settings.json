@@ -19,7 +19,11 @@
       "Bash(.venv/bin/pytest --cov=src/launch_success --cov-report=term-missing -rA)",
       "Bash(time LAUNCH_TUNE_HYPERPARAMETERS=true .venv/bin/python scripts/run_training.py)",
       "Bash(.venv/bin/python -c ' *)",
-      "Bash(.venv/bin/black --check src tests scripts app)"
+      "Bash(.venv/bin/black --check src tests scripts app)",
+      "Bash(rm -rf /tmp/deploytest && echo \"=== lint ===\" && .venv/bin/ruff check src tests scripts app 2>&1 | tail -2 && .venv/bin/black --check src tests scripts app 2>&1 | tail -1 && echo \"=== tests ===\" && .venv/bin/pytest -q 2>&1 | tail -2 && echo \"=== files ===\" && ls requirements*.txt)"
+    ],
+    "additionalDirectories": [
+      "/private/tmp/deploytest"
     ]
   }
 }

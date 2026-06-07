@@ -1,5 +1,9 @@
-# Runtime + dev dependencies, pinned for reproducibility (Python 3.11).
-# Install with:  pip install -r requirements.txt
+# Runtime dependencies, pinned for reproducibility (Python 3.11).
+# This is the file Streamlit Community Cloud installs for deployment.
+# Dev/test/lint tools live in requirements-dev.txt.
+#
+# IMPORTANT (deploy): use Python 3.11 — versions below ship prebuilt wheels for
+# 3.11; on 3.13 pip would compile numpy/pandas from source and time out.
 #
 # --- Core data / ML ---------------------------------------------------------
 numpy==1.26.4
@@ -26,10 +30,3 @@ streamlit==1.39.0
 
 # --- Optional gradient boosting (registry uses it when available) -----------
 xgboost==2.1.1
-
-# --- Dev / test / lint ------------------------------------------------------
-pytest==8.3.3
-pytest-cov==5.0.0
-responses==0.25.3
-ruff==0.6.9
-black==24.10.0

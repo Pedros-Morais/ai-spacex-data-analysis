@@ -1,0 +1,12 @@
+# Development dependencies (tests + lint), pinned. Includes the runtime set.
+# Install with:  pip install -r requirements-dev.txt
+#
+# Deployment (Streamlit Cloud) uses requirements.txt only — these tools are not
+# needed to run the app.
+-r requirements.txt
+
+pytest==8.3.3
+pytest-cov==5.0.0
+responses==0.25.3
+ruff==0.6.9
+black==24.10.0
