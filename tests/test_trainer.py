@@ -11,12 +11,14 @@ from sklearn.pipeline import Pipeline
 from launch_success.config import Settings
 from launch_success.evaluation.metrics import METRIC_NAMES
 from launch_success.features.engineering import split_features_target
+from launch_success.models.registry import get_param_distributions
 from launch_success.models.trainer import (
     build_pipeline,
     select_best_model,
     stratified_split,
     train_all_models,
     train_and_evaluate,
+    tune_pipeline,
 )
 
 
@@ -99,3 +101,62 @@ def test_train_all_and_select_best(xy, fast_settings, small_registry) -> None:
 def test_select_best_empty_raises_error() -> None:
     with pytest.raises(ValueError, match="No model results"):
         select_best_model({})
+
+
+def test_param_distributions_cover_base_models() -> None:
+    grids = get_param_distributions()
+    assert {"logistic_regression", "random_forest", "gradient_boosting"} <= set(grids)
+    # Keys must be pipeline-prefixed so they reach the estimator step.
+    for grid in grids.values():
+        assert all(key.startswith("model__") for key in grid)
+
+
+def test_tune_pipeline_returns_fitted_best(xy) -> None:
+    x, y = xy
+    settings = Settings(cv_folds=3, search_n_iter=2, seed=42)
+    x_tr, _, y_tr, _ = stratified_split(x, y, settings)
+    pipeline = build_pipeline(
+        LogisticRegression(max_iter=500, class_weight="balanced", random_state=42), settings
+    )
+    best, params, cv_mean, cv_std = tune_pipeline(
+        pipeline, {"model__C": [0.1, 1.0]}, x_tr, y_tr, settings
+    )
+    assert "model__C" in params
+    assert 0.0 <= cv_mean <= 1.0 and cv_std >= 0.0
+    # best is already refit on the full training set -> can predict.
+    assert len(best.predict(x_tr)) == len(x_tr)
+
+
+def test_train_and_evaluate_with_tuning(xy) -> None:
+    x, y = xy
+    settings = Settings(cv_folds=3, tune_hyperparameters=True, search_n_iter=2, seed=42)
+    x_tr, x_te, y_tr, y_te = stratified_split(x, y, settings)
+    result = train_and_evaluate(
+        "logistic_regression",
+        LogisticRegression(max_iter=500, class_weight="balanced", random_state=42),
+        x_tr,
+        y_tr,
+        x_te,
+        y_te,
+        settings,
+        param_grid={"model__C": [0.1, 1.0]},
+    )
+    assert result["best_params"] is not None
+    assert "model__C" in result["best_params"]
+    assert set(result["metrics"]) == set(METRIC_NAMES)
+
+
+def test_tuning_disabled_leaves_best_params_none(xy, fast_settings) -> None:
+    x, y = xy
+    x_tr, x_te, y_tr, y_te = stratified_split(x, y, fast_settings)
+    result = train_and_evaluate(
+        "logistic_regression",
+        LogisticRegression(max_iter=500, random_state=42),
+        x_tr,
+        y_tr,
+        x_te,
+        y_te,
+        fast_settings,
+        param_grid={"model__C": [0.1, 1.0]},  # ignored because tuning is off
+    )
+    assert result["best_params"] is None

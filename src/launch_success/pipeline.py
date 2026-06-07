@@ -120,6 +120,8 @@ def run_pipeline(
         "model_name": best_name,
         "target": target,
         "selection_metric": settings.selection_metric,
+        "tuned": settings.tune_hyperparameters,
+        "best_params": best.get("best_params"),
         "cv_mean": best["cv_mean"],
         "cv_std": best["cv_std"],
         "test_metrics": best["metrics"],
@@ -136,6 +138,7 @@ def run_pipeline(
                     "cv_mean": r["cv_mean"],
                     "cv_std": r["cv_std"],
                     "metrics": r["metrics"],
+                    "best_params": r.get("best_params"),
                 }
                 for name, r in results.items()
             },

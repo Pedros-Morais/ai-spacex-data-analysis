@@ -14,7 +14,12 @@
       "Bash(.venv/bin/pytest --cov=src/launch_success -rA)",
       "Bash(.venv/bin/pytest -q)",
       "Bash(.venv/bin/pytest)",
-      "Bash(.venv/bin/python scripts/run_training.py)"
+      "Bash(.venv/bin/python scripts/run_training.py)",
+      "Bash(.venv/bin/pytest tests/test_trainer.py tests/test_registry.py -q)",
+      "Bash(.venv/bin/pytest --cov=src/launch_success --cov-report=term-missing -rA)",
+      "Bash(time LAUNCH_TUNE_HYPERPARAMETERS=true .venv/bin/python scripts/run_training.py)",
+      "Bash(.venv/bin/python -c ' *)",
+      "Bash(.venv/bin/black --check src tests scripts app)"
     ]
   }
 }

@@ -83,3 +83,41 @@ def get_model_registry(settings: Settings | None = None) -> dict[str, BaseEstima
 
     logger.info("Candidate models: %s", ", ".join(registry))
     return registry
+
+
+# Search spaces for hyperparameter tuning. Keys are model names; values map
+# pipeline-prefixed parameters (``model__<param>``, since the estimator is the
+# ``model`` step of the pipeline) to the candidate values to search over.
+_PARAM_DISTRIBUTIONS: dict[str, dict[str, list]] = {
+    "logistic_regression": {
+        "model__C": [0.01, 0.1, 1.0, 10.0],
+        "model__penalty": ["l2"],
+    },
+    "random_forest": {
+        "model__n_estimators": [200, 300, 500],
+        "model__max_depth": [None, 10, 20],
+        "model__min_samples_split": [2, 5],
+        "model__min_samples_leaf": [1, 2],
+    },
+    "gradient_boosting": {
+        "model__n_estimators": [100, 200, 300],
+        "model__learning_rate": [0.05, 0.1, 0.2],
+        "model__max_depth": [2, 3],
+    },
+    "xgboost": {
+        "model__n_estimators": [200, 300],
+        "model__max_depth": [3, 4, 6],
+        "model__learning_rate": [0.05, 0.1],
+        "model__subsample": [0.8, 1.0],
+    },
+}
+
+
+def get_param_distributions() -> dict[str, dict[str, list]]:
+    """Returns the hyperparameter search space for each candidate model.
+
+    Returns:
+        Map ``model_name -> {``model__param``: [values]}`` for use with
+        ``GridSearchCV`` / ``RandomizedSearchCV``.
+    """
+    return {name: dict(grid) for name, grid in _PARAM_DISTRIBUTIONS.items()}

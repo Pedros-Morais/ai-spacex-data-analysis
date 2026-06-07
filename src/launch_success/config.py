@@ -21,6 +21,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 PROJECT_ROOT: Path = Path(__file__).resolve().parents[2]
 
 TargetName = Literal["success", "landing_success"]
+SearchStrategy = Literal["random", "grid"]
 
 
 class Settings(BaseSettings):
@@ -33,6 +34,11 @@ class Settings(BaseSettings):
         cv_folds: Number of StratifiedKFold folds.
         selection_metric: Metric used to select the best model.
         use_smote: If ``True``, applies SMOTE only on the training fold.
+        tune_hyperparameters: If ``True``, runs a cross-validated hyperparameter
+            search per model before the final fit.
+        search_strategy: ``"random"`` (RandomizedSearchCV) or ``"grid"``
+            (GridSearchCV).
+        search_n_iter: Sampled candidates for the randomized search.
     """
 
     model_config = SettingsConfigDict(
@@ -48,6 +54,13 @@ class Settings(BaseSettings):
     cv_folds: int = 5
     selection_metric: str = "f1"
     use_smote: bool = False
+
+    # --- Hyperparameter search -------------------------------------------- #
+    # Disabled by default to keep the test suite / CI fast; enable with
+    # LAUNCH_TUNE_HYPERPARAMETERS=true for a tuned run.
+    tune_hyperparameters: bool = False
+    search_strategy: SearchStrategy = "random"
+    search_n_iter: int = 15
 
     # --- SpaceX API v4 ---------------------------------------------------- #
     api_base_url: str = "https://api.spacexdata.com/v4"
