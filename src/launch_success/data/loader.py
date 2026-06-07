@@ -1,8 +1,9 @@
-"""Carregamento do dataset processado (snapshot real da API ou fallback).
+"""Loading of the processed dataset (real API snapshot or fallback).
 
-O CSV em ``data/processed/spacex_launches.csv`` pode vir tanto da ingestão real
-(:mod:`launch_success.data.ingestion`) quanto do gerador sintético versionado
-(:mod:`launch_success.data.synthetic`). O loader é agnóstico à origem.
+The CSV at ``data/processed/spacex_launches.csv`` may come from either the real
+ingestion (:mod:`launch_success.data.ingestion`) or the versioned synthetic
+generator (:mod:`launch_success.data.synthetic`). The loader is agnostic to the
+source.
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ from ..exceptions import DataValidationError
 
 logger = logging.getLogger(__name__)
 
-# Colunas mínimas que qualquer dataset válido precisa expor.
+# Minimum columns that any valid dataset must expose.
 REQUIRED_COLUMNS: frozenset[str] = frozenset(
     {
         "flight_number",
@@ -39,38 +40,37 @@ def load_dataset(
     path: str | Path | None = None,
     settings: Settings | None = None,
 ) -> pd.DataFrame:
-    """Carrega o dataset processado de um CSV.
+    """Loads the processed dataset from a CSV file.
 
     Args:
-        path: Caminho do CSV. Se omitido, usa ``settings.processed_csv``.
-        settings: Configuração (usa :data:`SETTINGS` se omitida).
+        path: Path to the CSV. If omitted, uses ``settings.processed_csv``.
+        settings: Configuration (uses :data:`SETTINGS` if omitted).
 
     Returns:
-        DataFrame cru, antes da limpeza.
+        Raw DataFrame, before cleaning.
 
     Raises:
-        DataValidationError: Se o arquivo não existir, estiver vazio ou faltarem
-            colunas obrigatórias.
+        DataValidationError: If the file does not exist, is empty, or required
+            columns are missing.
     """
     settings = settings or SETTINGS
     csv_path = Path(path) if path is not None else settings.processed_csv
 
     if not csv_path.exists():
         raise DataValidationError(
-            f"Dataset não encontrado em {csv_path}. "
-            "Rode a ingestão (`make ingest`) ou gere o fallback "
-            "(`python scripts/generate_dataset.py`)."
+            f"Dataset not found at {csv_path}. Run ingestion (`make ingest`) or generate the"
+            f" fallback (`python scripts/generate_dataset.py`)."
         )
 
     frame = pd.read_csv(csv_path)
     if frame.empty:
-        raise DataValidationError(f"Dataset em {csv_path} está vazio.")
+        raise DataValidationError(f"Dataset at {csv_path} is empty.")
 
     missing = REQUIRED_COLUMNS - set(frame.columns)
     if missing:
         raise DataValidationError(
-            f"Dataset em {csv_path} não tem as colunas obrigatórias: {sorted(missing)}"
+            f"Dataset at {csv_path} is missing required columns: {sorted(missing)}"
         )
 
-    logger.info("Dataset carregado de %s (%d linhas)", csv_path, len(frame))
+    logger.info("Dataset loaded from %s (%d rows)", csv_path, len(frame))
     return frame

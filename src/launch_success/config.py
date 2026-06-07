@@ -1,12 +1,12 @@
-"""Configuração centralizada do projeto.
+"""Centralised project configuration.
 
-Todas as constantes "mágicas" (caminhos, seed, hiperparâmetros, listas de
-features, alvo) vivem aqui. Outros módulos importam :data:`SETTINGS` ou
-constroem uma instância de :class:`Settings`, garantindo reprodutibilidade e
-um único ponto de verdade para a configuração.
+All "magic" constants (paths, seed, hyperparameters, feature lists, target)
+live here. Other modules import :data:`SETTINGS` or construct a
+:class:`Settings` instance, ensuring reproducibility and a single source of
+truth for the configuration.
 
-As configurações podem ser sobrescritas por variáveis de ambiente com o
-prefixo ``LAUNCH_`` (ex.: ``LAUNCH_TARGET=landing_success``).
+Settings can be overridden by environment variables with the prefix
+``LAUNCH_`` (e.g. ``LAUNCH_TARGET=landing_success``).
 """
 
 from __future__ import annotations
@@ -17,22 +17,22 @@ from typing import Literal
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Raiz do projeto: este arquivo é src/launch_success/config.py.
+# Project root: this file is src/launch_success/config.py.
 PROJECT_ROOT: Path = Path(__file__).resolve().parents[2]
 
 TargetName = Literal["success", "landing_success"]
 
 
 class Settings(BaseSettings):
-    """Configuração tipada e validada do pipeline.
+    """Typed and validated pipeline configuration.
 
     Attributes:
-        seed: Semente global para reprodutibilidade.
-        target: Coluna alvo da classificação binária.
-        test_size: Fração reservada para teste no split estratificado.
-        cv_folds: Número de folds do StratifiedKFold.
-        selection_metric: Métrica usada para escolher o melhor modelo.
-        use_smote: Se ``True``, aplica SMOTE apenas no fold de treino.
+        seed: Global seed for reproducibility.
+        target: Target column for binary classification.
+        test_size: Fraction held out for testing in the stratified split.
+        cv_folds: Number of StratifiedKFold folds.
+        selection_metric: Metric used to select the best model.
+        use_smote: If ``True``, applies SMOTE only on the training fold.
     """
 
     model_config = SettingsConfigDict(
@@ -41,7 +41,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # --- Reprodutibilidade / problema ----------------------------------- #
+    # --- Reproducibility / problem ---------------------------------------- #
     seed: int = 42
     target: TargetName = "success"
     test_size: float = 0.2
@@ -49,13 +49,13 @@ class Settings(BaseSettings):
     selection_metric: str = "f1"
     use_smote: bool = False
 
-    # --- API SpaceX v4 -------------------------------------------------- #
+    # --- SpaceX API v4 ---------------------------------------------------- #
     api_base_url: str = "https://api.spacexdata.com/v4"
     api_timeout: float = 30.0
     api_max_retries: int = 3
     api_backoff_factor: float = 0.5
 
-    # --- Caminhos ------------------------------------------------------- #
+    # --- Paths ------------------------------------------------------------ #
     project_root: Path = PROJECT_ROOT
     data_dir: Path = PROJECT_ROOT / "data"
     raw_dir: Path = PROJECT_ROOT / "data" / "raw"
@@ -63,7 +63,7 @@ class Settings(BaseSettings):
     models_dir: Path = PROJECT_ROOT / "models"
     figures_dir: Path = PROJECT_ROOT / "reports" / "figures"
 
-    # --- Schema de features --------------------------------------------- #
+    # --- Feature schema --------------------------------------------------- #
     numeric_features: list[str] = Field(
         default_factory=lambda: ["flight_number", "year", "payload_mass_kg", "flights"]
     )
@@ -74,31 +74,31 @@ class Settings(BaseSettings):
 
     @property
     def feature_columns(self) -> list[str]:
-        """Lista completa de colunas usadas como entrada do modelo."""
+        """Full list of columns used as model input."""
         return [*self.numeric_features, *self.categorical_features, *self.boolean_features]
 
     @property
     def processed_csv(self) -> Path:
-        """Caminho do CSV processado (snapshot real ou fallback)."""
+        """Path to the processed CSV (real snapshot or fallback)."""
         return self.processed_dir / "spacex_launches.csv"
 
     @property
     def raw_json(self) -> Path:
-        """Caminho do JSON cru consolidado da API."""
+        """Path to the consolidated raw JSON from the API."""
         return self.raw_dir / "spacex_launches_raw.json"
 
     @property
     def best_model_path(self) -> Path:
-        """Caminho do pipeline vencedor serializado."""
+        """Path to the serialised winning pipeline."""
         return self.models_dir / "best_model.joblib"
 
     @property
     def metrics_path(self) -> Path:
-        """Caminho do JSON com a comparação de métricas dos modelos."""
+        """Path to the JSON file containing the model metrics comparison."""
         return self.models_dir / "metrics.json"
 
     def ensure_directories(self) -> None:
-        """Cria os diretórios de saída, se ainda não existirem."""
+        """Creates output directories if they do not already exist."""
         for directory in (
             self.raw_dir,
             self.processed_dir,
@@ -108,5 +108,5 @@ class Settings(BaseSettings):
             directory.mkdir(parents=True, exist_ok=True)
 
 
-# Instância padrão reutilizável em todo o projeto.
+# Default instance reusable across the entire project.
 SETTINGS = Settings()

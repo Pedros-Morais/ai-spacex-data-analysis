@@ -1,10 +1,10 @@
-"""Orquestração ponta a ponta do pipeline de ML.
+"""End-to-end ML pipeline orchestration.
 
-Encadeia: carregamento -> limpeza -> engenharia -> EDA -> split estratificado
--> treino de todos os modelos -> comparação -> seleção do melhor -> ``fit``
-final -> persistência -> gráficos de avaliação -> análise SHAP.
+Chains: loading -> cleaning -> feature engineering -> EDA -> stratified split
+-> training all models -> comparison -> best-model selection -> final ``fit``
+-> persistence -> evaluation plots -> SHAP analysis.
 
-Pode ser executado via ``python -m launch_success.pipeline`` ou pelo script
+Can be run via ``python -m launch_success.pipeline`` or through the script
 ``scripts/run_training.py``.
 """
 
@@ -30,13 +30,13 @@ logger = logging.getLogger(__name__)
 
 
 def build_metrics_table(results: dict[str, dict[str, Any]]) -> pd.DataFrame:
-    """Monta a tabela comparativa de métricas (uma linha por modelo).
+    """Build the comparative metrics table (one row per model).
 
     Args:
-        results: Saída de :func:`~launch_success.models.trainer.train_all_models`.
+        results: Output of :func:`~launch_success.models.trainer.train_all_models`.
 
     Returns:
-        DataFrame ordenado pela média de CV (decrescente).
+        DataFrame sorted by CV mean (descending).
     """
     rows = []
     for name, result in results.items():
@@ -48,7 +48,7 @@ def build_metrics_table(results: dict[str, dict[str, Any]]) -> pd.DataFrame:
 
 
 def _generate_eda_plots(frame: pd.DataFrame, target: str, settings: Settings) -> dict[str, Any]:
-    """Gera os gráficos de EDA (distribuição do alvo e taxas por categoria)."""
+    """Generate EDA plots (target distribution and rates by category)."""
     figures: dict[str, Any] = {
         "target_distribution": plots.plot_target_distribution(frame, target, settings),
     }
@@ -66,7 +66,7 @@ def _generate_evaluation_plots(
     y_test: pd.Series,
     settings: Settings,
 ) -> dict[str, Any]:
-    """Gera matriz de confusão, curvas ROC/PR e comparação de modelos."""
+    """Generate confusion matrix, ROC/PR curves, and model comparison chart."""
     return {
         "confusion_matrix": plots.plot_confusion_matrix(
             y_test.to_numpy(), best["y_pred"], settings
@@ -82,22 +82,22 @@ def run_pipeline(
     generate_plots: bool = True,
     run_shap: bool = True,
 ) -> dict[str, Any]:
-    """Executa o pipeline completo e retorna o resumo dos resultados.
+    """Run the full pipeline and return a summary of results.
 
     Args:
-        settings: Configuração (usa :data:`SETTINGS` se omitida).
-        generate_plots: Se ``True``, gera os gráficos de EDA e avaliação.
-        run_shap: Se ``True``, roda a análise SHAP do modelo vencedor.
+        settings: Configuration (uses :data:`SETTINGS` if omitted).
+        generate_plots: If ``True``, generate EDA and evaluation plots.
+        run_shap: If ``True``, run SHAP analysis on the winning model.
 
     Returns:
-        Dicionário com ``best_name``, ``metrics_table`` (DataFrame),
-        ``model_path``, ``figures`` e ``results``.
+        Dictionary containing ``best_name``, ``metrics_table`` (DataFrame),
+        ``model_path``, ``figures``, and ``results``.
     """
     settings = settings or SETTINGS
     settings.ensure_directories()
     target = settings.target
 
-    # 1) Carregamento + limpeza + engenharia.
+    # 1) Loading + cleaning + feature engineering.
     raw = load_dataset(settings=settings)
     clean = clean_launches(raw, settings=settings, target=target)
     enriched = add_derived_features(clean)
@@ -106,16 +106,16 @@ def run_pipeline(
     if generate_plots:
         figures.update(_generate_eda_plots(enriched, target, settings))
 
-    # 2) Split estratificado.
+    # 2) Stratified split.
     x, y = split_features_target(enriched, settings=settings, target=target)
     x_train, x_test, y_train, y_test = stratified_split(x, y, settings)
 
-    # 3) Treino + comparação + seleção.
+    # 3) Training + comparison + selection.
     results = train_all_models(x_train, y_train, x_test, y_test, settings)
     metrics_table = build_metrics_table(results)
     best_name, best = select_best_model(results, settings.selection_metric)
 
-    # 4) Persistência do pipeline vencedor + metadados.
+    # 4) Persistence of the winning pipeline + metadata.
     metadata = {
         "model_name": best_name,
         "target": target,
@@ -144,16 +144,16 @@ def run_pipeline(
         encoding="utf-8",
     )
 
-    # 5) Gráficos de avaliação + SHAP.
+    # 5) Evaluation plots + SHAP.
     if generate_plots:
         figures.update(_generate_evaluation_plots(results, best, y_test, settings))
     if run_shap:
         try:
             figures.update(run_shap_analysis(best["pipeline"], x_test, settings))
-        except Exception as exc:  # noqa: BLE001 - SHAP não deve quebrar o pipeline
-            logger.warning("Análise SHAP falhou e foi ignorada: %s", exc)
+        except Exception as exc:  # noqa: BLE001 - SHAP must not break the pipeline
+            logger.warning("SHAP analysis failed and was skipped: %s", exc)
 
-    logger.info("Pipeline concluído. Melhor modelo: %s", best_name)
+    logger.info("Pipeline complete. Best model: %s", best_name)
     return {
         "best_name": best_name,
         "best_result": best,
@@ -165,13 +165,13 @@ def run_pipeline(
 
 
 def main() -> None:  # pragma: no cover - thin CLI wrapper
-    """Ponto de entrada de linha de comando para o treino."""
+    """Command-line entry point for training."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     summary = run_pipeline()
-    print("\n=== Comparação de modelos ===")
+    print("\n=== Model comparison ===")
     print(summary["metrics_table"].round(4).to_string())
-    print(f"\nMelhor modelo: {summary['best_name']}")
-    print(f"Modelo salvo em: {summary['model_path']}")
+    print(f"\nBest model: {summary['best_name']}")
+    print(f"Model saved to: {summary['model_path']}")
 
 
 if __name__ == "__main__":  # pragma: no cover

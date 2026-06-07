@@ -1,4 +1,4 @@
-"""Smoke test end-to-end do pipeline em dados sintéticos pequenos."""
+"""Smoke test for the end-to-end pipeline on small synthetic data."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ def _fast_registry(settings=None):
 
 
 def test_pipeline_end_to_end(tmp_settings, monkeypatch) -> None:
-    # Registro reduzido para um smoke test rápido.
+    # Reduced registry for a fast smoke test.
     monkeypatch.setattr("launch_success.models.trainer.get_model_registry", _fast_registry)
     write_synthetic_dataset(n_rows=300, settings=tmp_settings)
 
@@ -33,13 +33,13 @@ def test_pipeline_end_to_end(tmp_settings, monkeypatch) -> None:
     assert isinstance(summary["metrics_table"], pd.DataFrame)
     assert summary["model_path"].exists()
     assert tmp_settings.metrics_path.exists()
-    # EDA (4) + avaliação (4) + SHAP (3) = 11 figuras esperadas.
+    # EDA (4) + evaluation (4) + SHAP (3) = 11 expected figures.
     assert len(summary["figures"]) >= 8
     for path in summary["figures"].values():
         assert path.exists()
 
 
-def test_pipeline_sem_plots_nem_shap(tmp_settings, monkeypatch) -> None:
+def test_pipeline_without_plots_or_shap(tmp_settings, monkeypatch) -> None:
     monkeypatch.setattr("launch_success.models.trainer.get_model_registry", _fast_registry)
     write_synthetic_dataset(n_rows=200, settings=tmp_settings)
     summary = run_pipeline(tmp_settings, generate_plots=False, run_shap=False)
@@ -47,11 +47,11 @@ def test_pipeline_sem_plots_nem_shap(tmp_settings, monkeypatch) -> None:
     assert summary["model_path"].exists()
 
 
-def test_build_metrics_table_ordenada() -> None:
+def test_build_metrics_table_sorted() -> None:
     results = {
         "a": {"cv_mean": 0.7, "cv_std": 0.01, "metrics": {m: 0.7 for m in METRIC_NAMES}},
         "b": {"cv_mean": 0.9, "cv_std": 0.02, "metrics": {m: 0.9 for m in METRIC_NAMES}},
     }
     table = build_metrics_table(results)
-    assert list(table.index) == ["b", "a"]  # ordenado por cv_mean desc
+    assert list(table.index) == ["b", "a"]  # sorted by cv_mean desc
     assert "f1" in table.columns

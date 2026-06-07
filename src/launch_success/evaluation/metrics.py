@@ -1,8 +1,8 @@
-"""Métricas de avaliação para classificação binária desbalanceada.
+"""Evaluation metrics for imbalanced binary classification.
 
-O ``accuracy`` é reportado por completude, mas a seleção e a leitura dos
-resultados priorizam ``f1``, ``recall``, ``precision``, ``roc_auc`` e
-``pr_auc`` (average precision) — robustos sob desbalanceamento de classes.
+``accuracy`` is reported for completeness, but model selection and result
+interpretation prioritise ``f1``, ``recall``, ``precision``, ``roc_auc`` and
+``pr_auc`` (average precision) — robust under class imbalance.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
-# Ordem canônica das métricas (usada em tabelas e relatórios).
+# Canonical metric order (used in tables and reports).
 METRIC_NAMES: tuple[str, ...] = (
     "accuracy",
     "precision",
@@ -37,18 +37,18 @@ def compute_metrics(
     y_pred: ArrayLike,
     y_proba: ArrayLike | None = None,
 ) -> dict[str, float]:
-    """Calcula o conjunto de métricas de classificação binária.
+    """Compute the full set of binary classification metrics.
 
     Args:
-        y_true: Rótulos verdadeiros (0/1).
-        y_pred: Rótulos previstos (0/1).
-        y_proba: Probabilidades da classe positiva (para ROC-AUC / PR-AUC).
-            Se ``None``, essas métricas retornam ``NaN``.
+        y_true: Ground-truth labels (0/1).
+        y_pred: Predicted labels (0/1).
+        y_proba: Positive-class probabilities (for ROC-AUC / PR-AUC).
+            If ``None``, those metrics return ``NaN``.
 
     Returns:
-        Dicionário ``{nome_da_métrica: valor}`` com as chaves de
-        :data:`METRIC_NAMES`. Métricas indefinidas (ex.: ROC-AUC com uma única
-        classe presente) retornam ``NaN``.
+        Dictionary ``{metric_name: value}`` keyed by :data:`METRIC_NAMES`.
+        Undefined metrics (e.g. ROC-AUC when only one class is present)
+        return ``NaN``.
     """
     y_true_arr = np.asarray(y_true)
     y_pred_arr = np.asarray(y_pred)
@@ -62,7 +62,7 @@ def compute_metrics(
         "pr_auc": float("nan"),
     }
 
-    # ROC-AUC e PR-AUC exigem probabilidades e ambas as classes presentes.
+    # ROC-AUC and PR-AUC require probabilities and both classes to be present.
     if y_proba is not None and len(np.unique(y_true_arr)) == 2:
         y_proba_arr = np.asarray(y_proba)
         metrics["roc_auc"] = float(roc_auc_score(y_true_arr, y_proba_arr))

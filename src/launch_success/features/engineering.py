@@ -1,8 +1,8 @@
-"""Engenharia de atributos e construção do pré-processador (sem leakage).
+"""Feature engineering and preprocessor construction (no leakage).
 
-O :class:`~sklearn.compose.ColumnTransformer` é devolvido **não-ajustado**; o
-``fit`` ocorre apenas dentro do :class:`~sklearn.pipeline.Pipeline` no fold de
-treino (ver :mod:`launch_success.models.trainer`), evitando vazamento de dados.
+The :class:`~sklearn.compose.ColumnTransformer` is returned **unfitted**; the
+``fit`` happens only inside the :class:`~sklearn.pipeline.Pipeline` on the
+training fold (see :mod:`launch_success.models.trainer`), preventing data leakage.
 """
 
 from __future__ import annotations
@@ -21,20 +21,20 @@ logger = logging.getLogger(__name__)
 
 
 def add_derived_features(frame: pd.DataFrame) -> pd.DataFrame:
-    """Deriva atributos a partir das colunas cruas.
+    """Derives features from raw columns.
 
-    Atualmente garante a coluna ``year`` (extraída de ``date_utc`` quando
-    ausente). Mantida como função pura e extensível para novas derivações.
+    Currently ensures the ``year`` column exists (extracted from ``date_utc``
+    when absent). Kept as a pure, extensible function for future derivations.
 
     Args:
-        frame: DataFrame limpo.
+        frame: Cleaned DataFrame.
 
     Returns:
-        Cópia do DataFrame com os atributos derivados.
+        Copy of the DataFrame with derived features added.
     """
     df = frame.copy()
     if "date_utc" in df.columns:
-        # format="ISO8601" lida com precisões distintas (com/sem milissegundos).
+        # format="ISO8601" handles varying precisions (with/without milliseconds).
         year_from_date = pd.to_datetime(
             df["date_utc"], errors="coerce", utc=True, format="ISO8601"
         ).dt.year
@@ -50,15 +50,15 @@ def split_features_target(
     settings: Settings | None = None,
     target: str | None = None,
 ) -> tuple[pd.DataFrame, pd.Series]:
-    """Separa a matriz de features ``X`` do vetor alvo ``y``.
+    """Separates the feature matrix ``X`` from the target vector ``y``.
 
     Args:
-        frame: DataFrame limpo e enriquecido.
-        settings: Configuração (usa :data:`SETTINGS` se omitida).
-        target: Alvo; se omitido, usa ``settings.target``.
+        frame: Cleaned and enriched DataFrame.
+        settings: Configuration (uses :data:`SETTINGS` if omitted).
+        target: Target column; if omitted, uses ``settings.target``.
 
     Returns:
-        Par ``(X, y)`` com ``X`` contendo apenas ``settings.feature_columns``.
+        Pair ``(X, y)`` where ``X`` contains only ``settings.feature_columns``.
     """
     settings = settings or SETTINGS
     target = target or settings.target
@@ -69,17 +69,17 @@ def split_features_target(
 
 
 def build_preprocessor(settings: Settings | None = None) -> ColumnTransformer:
-    """Constrói o ``ColumnTransformer`` de pré-processamento (não-ajustado).
+    """Builds the preprocessing ``ColumnTransformer`` (unfitted).
 
-    * Numéricas: imputação por mediana + padronização (``StandardScaler``).
-    * Categóricas: imputação por constante + ``OneHotEncoder(handle_unknown="ignore")``.
-    * Booleanas: imputação pela moda (já em escala 0/1, sem padronização).
+    * Numeric: median imputation + standardisation (``StandardScaler``).
+    * Categorical: constant imputation + ``OneHotEncoder(handle_unknown="ignore")``.
+    * Boolean: mode imputation (already on 0/1 scale, no standardisation needed).
 
     Args:
-        settings: Configuração (usa :data:`SETTINGS` se omitida).
+        settings: Configuration (uses :data:`SETTINGS` if omitted).
 
     Returns:
-        ``ColumnTransformer`` pronto para entrar em um ``Pipeline``.
+        ``ColumnTransformer`` ready to be included in a ``Pipeline``.
     """
     settings = settings or SETTINGS
 

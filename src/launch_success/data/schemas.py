@@ -1,8 +1,8 @@
-"""Modelos de domínio que representam entidades da API v4 da SpaceX.
+"""Domain models representing entities from the SpaceX API v4.
 
-Esses modelos isolam o parsing/validação do JSON cru da API das funções de
-transformação puras (ex.: :func:`aggregate_payload_mass`), tornando-as fáceis
-de testar com objetos simples em vez de dicionários soltos.
+These models isolate the parsing/validation of raw API JSON from the pure
+transformation functions (e.g. :func:`aggregate_payload_mass`), making them
+easy to test with simple objects instead of loose dictionaries.
 """
 
 from __future__ import annotations
@@ -11,11 +11,11 @@ from pydantic import BaseModel, ConfigDict
 
 
 class Payload(BaseModel):
-    """Payload resolvido de um lançamento.
+    """Resolved payload of a launch.
 
     Attributes:
-        mass_kg: Massa do payload em quilogramas (``None`` se desconhecida).
-        orbit: Sigla da órbita alvo (ex.: ``"LEO"``, ``"GTO"``).
+        mass_kg: Payload mass in kilograms (``None`` if unknown).
+        orbit: Target orbit code (e.g. ``"LEO"``, ``"GTO"``).
     """
 
     model_config = ConfigDict(extra="ignore")
@@ -25,14 +25,14 @@ class Payload(BaseModel):
 
 
 class Core(BaseModel):
-    """Core (1º estágio) de um lançamento.
+    """Core (first stage) of a launch.
 
     Attributes:
-        reused: Se o booster já havia voado antes.
-        flights: Número de voos acumulados pelo core.
-        gridfins: Presença de grid fins.
-        legs: Presença de pernas de pouso.
-        landing_success: Se o pouso/recuperação teve sucesso.
+        reused: Whether the booster had flown before.
+        flights: Total number of flights accumulated by the core.
+        gridfins: Whether grid fins were present.
+        legs: Whether landing legs were present.
+        landing_success: Whether the landing/recovery was successful.
     """
 
     model_config = ConfigDict(extra="ignore")

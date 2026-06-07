@@ -1,15 +1,15 @@
-"""Interpretabilidade dos modelos com SHAP.
+"""Model interpretability with SHAP.
 
-A explicação ocorre no **espaço transformado** (pós ``ColumnTransformer``): o
-pré-processador converte ``X`` e fornece os nomes das features codificadas; o
-explainer é escolhido conforme o tipo de modelo:
+Explanation is performed in the **transformed space** (post ``ColumnTransformer``):
+the preprocessor transforms ``X`` and provides encoded feature names; the
+explainer is chosen based on the model type:
 
-* árvores (RandomForest, GradientBoosting, XGBoost) -> :class:`shap.TreeExplainer`;
-* regressão logística (linear) -> :class:`shap.LinearExplainer`;
-* fallback genérico -> :class:`shap.KernelExplainer`.
+* trees (RandomForest, GradientBoosting, XGBoost) -> :class:`shap.TreeExplainer`;
+* logistic regression (linear) -> :class:`shap.LinearExplainer`;
+* generic fallback -> :class:`shap.KernelExplainer`.
 
-São gerados e salvos: *summary plot* (beeswarm), *bar plot* (importância global)
-e *waterfall* (explicação de uma previsão individual).
+Three artefacts are generated and saved: *summary plot* (beeswarm),
+*bar plot* (global importance), and *waterfall* (individual prediction explanation).
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from typing import Any
 
 import matplotlib
 
-matplotlib.use("Agg")  # headless — antes de importar pyplot
+matplotlib.use("Agg")  # headless — must be set before importing pyplot
 
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
@@ -32,7 +32,7 @@ from ..config import SETTINGS, Settings  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
-# Modelos lineares usam LinearExplainer; árvores usam TreeExplainer.
+# Linear models use LinearExplainer; tree models use TreeExplainer.
 _LINEAR_MODELS = {"LogisticRegression"}
 _TREE_MODELS = {
     "RandomForestClassifier",
@@ -42,21 +42,21 @@ _TREE_MODELS = {
 
 
 def _densify(matrix: Any) -> np.ndarray:
-    """Converte uma matriz esparsa em densa, se necessário."""
+    """Convert a sparse matrix to dense, if necessary."""
     return matrix.toarray() if hasattr(matrix, "toarray") else np.asarray(matrix)
 
 
 def _normalize_explanation(explanation: shap.Explanation) -> shap.Explanation:
-    """Reduz a explicação para a classe positiva quando há eixo de classes.
+    """Reduce the explanation to the positive class when a class axis is present.
 
-    Alguns explainers retornam valores com shape ``(n, n_features, n_classes)``;
-    selecionamos a classe positiva (índice 1) para obter ``(n, n_features)``.
+    Some explainers return values with shape ``(n, n_features, n_classes)``;
+    we select the positive class (index 1) to obtain ``(n, n_features)``.
 
     Args:
-        explanation: Objeto :class:`shap.Explanation` cru.
+        explanation: Raw :class:`shap.Explanation` object.
 
     Returns:
-        Explicação 2D para a classe positiva.
+        2D explanation for the positive class.
     """
     values = np.asarray(explanation.values)
     base = np.asarray(explanation.base_values)
@@ -77,16 +77,16 @@ def compute_shap_explanation(
     settings: Settings | None = None,
     max_samples: int = 300,
 ) -> shap.Explanation:
-    """Calcula os valores SHAP de um pipeline ajustado.
+    """Compute SHAP values for a fitted pipeline.
 
     Args:
-        pipeline: Pipeline treinado (pré-processador + modelo).
-        x: Amostra de features (crua, pré-transformação).
-        settings: Configuração (usa :data:`SETTINGS` se omitida).
-        max_samples: Limite de linhas para acelerar o cálculo/plotagem.
+        pipeline: Trained pipeline (preprocessor + model).
+        x: Feature sample (raw, pre-transformation).
+        settings: Configuration (uses :data:`SETTINGS` if omitted).
+        max_samples: Row limit to speed up computation and plotting.
 
     Returns:
-        :class:`shap.Explanation` 2D (classe positiva) com nomes de features.
+        2D :class:`shap.Explanation` (positive class) with feature names.
     """
     settings = settings or SETTINGS
     sample = x.iloc[:max_samples].copy()
@@ -103,7 +103,7 @@ def compute_shap_explanation(
     elif model_name in _LINEAR_MODELS:
         explainer = shap.LinearExplainer(model, x_trans)
         explanation = explainer(x_trans)
-    else:  # fallback genérico (lento, mas robusto)
+    else:  # generic fallback (slow but robust)
         background = shap.utils.sample(x_trans, min(50, len(x_trans)))
         explainer = shap.KernelExplainer(model.predict_proba, background)
         values = explainer.shap_values(x_trans, nsamples=100)
@@ -115,12 +115,12 @@ def compute_shap_explanation(
         )
 
     explanation.feature_names = feature_names
-    logger.info("SHAP calculado para %d amostras (%s)", len(x_trans), model_name)
+    logger.info("SHAP computed for %d samples (%s)", len(x_trans), model_name)
     return _normalize_explanation(explanation)
 
 
 def _save_current_figure(path: Path) -> Path:
-    """Salva a figura atual do matplotlib e a fecha."""
+    """Save the current matplotlib figure and close it."""
     path.parent.mkdir(parents=True, exist_ok=True)
     fig = plt.gcf()
     fig.savefig(path, dpi=120, bbox_inches="tight")
@@ -133,7 +133,7 @@ def save_summary_plot(
     settings: Settings | None = None,
     filename: str = "shap_summary.png",
 ) -> Path:
-    """Salva o *summary plot* (beeswarm) da importância das features."""
+    """Save the *summary plot* (beeswarm) of feature importance."""
     settings = settings or SETTINGS
     plt.figure()
     shap.summary_plot(
@@ -150,7 +150,7 @@ def save_bar_plot(
     settings: Settings | None = None,
     filename: str = "shap_bar.png",
 ) -> Path:
-    """Salva o *bar plot* da importância global média (|SHAP|)."""
+    """Save the *bar plot* of mean global importance (|SHAP|)."""
     settings = settings or SETTINGS
     plt.figure()
     shap.summary_plot(
@@ -169,7 +169,7 @@ def save_waterfall_plot(
     settings: Settings | None = None,
     filename: str = "shap_waterfall.png",
 ) -> Path:
-    """Salva o *waterfall* explicando uma previsão individual."""
+    """Save the *waterfall* plot explaining an individual prediction."""
     settings = settings or SETTINGS
     plt.figure()
     shap.plots.waterfall(explanation[index], show=False)
@@ -181,15 +181,15 @@ def run_shap_analysis(
     x: pd.DataFrame,
     settings: Settings | None = None,
 ) -> dict[str, Path]:
-    """Executa a análise SHAP completa e salva os três gráficos.
+    """Run the full SHAP analysis and save all three plots.
 
     Args:
-        pipeline: Pipeline treinado.
-        x: Amostra de features para explicar.
-        settings: Configuração (usa :data:`SETTINGS` se omitida).
+        pipeline: Trained pipeline.
+        x: Feature sample to explain.
+        settings: Configuration (uses :data:`SETTINGS` if omitted).
 
     Returns:
-        Mapa ``{nome_do_gráfico: caminho}``.
+        Mapping ``{plot_name: path}``.
     """
     settings = settings or SETTINGS
     explanation = compute_shap_explanation(pipeline, x, settings)

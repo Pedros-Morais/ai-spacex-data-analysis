@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc:*)",
+      "Bash(grep:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(.venv/bin/python -m pytest:*)",
+      "Bash(done)",
+      "Bash(python3 -m pytest:*)",
+      "Bash(source:*)",
+      "Bash(pytest:*)"
+    ]
+  }
+}

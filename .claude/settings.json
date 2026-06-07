@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/bin/ruff check *)",
+      "Bash(.venv/bin/black src *)",
+      "Bash(.venv/bin/pytest -q --cov=src/launch_success --cov-report=term-missing)",
+      "Bash(.venv/bin/pytest tests/test_edge_cases.py::TestFeatureEngineeringEdgeCases::test_preprocessor_handles_unknown_categories tests/test_edge_cases.py::TestTrainerEdgeCases::test_cross_validate_minimum_folds \"tests/test_spacex_client_extended.py::TestSpaceXClientErrors::test_invalid_json_response\" \"tests/test_spacex_client_extended.py::TestSpaceXClientErrors::test_connection_error\")",
+      "Bash(.venv/bin/pytest tests/test_edge_cases.py::TestFeatureEngineeringEdgeCases::test_preprocessor_handles_unknown_categories \"tests/test_spacex_client_extended.py::TestSpaceXClientErrors::test_invalid_json_response\" \"tests/test_spacex_client_extended.py::TestSpaceXClientErrors::test_connection_error\" tests/test_edge_cases.py::TestTrainerEdgeCases::test_cross_validate_minimum_folds)",
+      "Bash(.venv/bin/pytest -p no:randomly --tb=line)",
+      "Bash(.venv/bin/pytest --tb=short)",
+      "Bash(.venv/bin/pytest -q --cov=src/launch_success)",
+      "Bash(.venv/bin/pytest -q --cov=src/launch_success -p no:cacheprovider)",
+      "Bash(.venv/bin/pytest --cov=src/launch_success)",
+      "Bash(.venv/bin/pytest --cov=src/launch_success -rA)",
+      "Bash(.venv/bin/pytest -q)",
+      "Bash(.venv/bin/pytest)",
+      "Bash(.venv/bin/python scripts/run_training.py)"
+    ]
+  }
+}

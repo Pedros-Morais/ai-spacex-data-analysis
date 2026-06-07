@@ -1,4 +1,4 @@
-"""Testes do carregamento de dataset (validação de schema e erros)."""
+"""Tests for dataset loading (schema validation and error handling)."""
 
 from __future__ import annotations
 
@@ -17,20 +17,20 @@ def test_load_dataset_ok(tmp_settings) -> None:
     assert "success" in frame.columns
 
 
-def test_load_dataset_arquivo_ausente(tmp_settings) -> None:
-    with pytest.raises(DataValidationError, match="não encontrado"):
+def test_load_dataset_file_not_found(tmp_settings) -> None:
+    with pytest.raises(DataValidationError, match="not found"):
         load_dataset(settings=tmp_settings)
 
 
-def test_load_dataset_vazio(tmp_settings) -> None:
+def test_load_dataset_empty_file(tmp_settings) -> None:
     tmp_settings.ensure_directories()
     tmp_settings.processed_csv.write_text("col\n", encoding="utf-8")
     with pytest.raises(DataValidationError):
         load_dataset(settings=tmp_settings)
 
 
-def test_load_dataset_colunas_faltando(tmp_settings) -> None:
+def test_load_dataset_missing_columns(tmp_settings) -> None:
     tmp_settings.ensure_directories()
     pd.DataFrame({"flight_number": [1, 2]}).to_csv(tmp_settings.processed_csv, index=False)
-    with pytest.raises(DataValidationError, match="obrigatórias"):
+    with pytest.raises(DataValidationError, match="required"):
         load_dataset(settings=tmp_settings)

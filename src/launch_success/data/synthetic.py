@@ -1,18 +1,18 @@
-"""Gerador de dataset sintético calibrado em estatísticas reais da SpaceX.
+"""Synthetic dataset generator calibrated to real SpaceX statistics.
 
-A API v4 pode estar indisponível no ambiente de correção; este módulo produz um
-CSV representativo (>= 1.000 linhas) com o **mesmo schema** da ingestão real,
-permitindo que o pipeline rode *out-of-the-box*.
+The v4 API may be unavailable in the grading environment; this module produces a
+representative CSV (>= 1,000 rows) with the **same schema** as the real
+ingestion, allowing the pipeline to run *out-of-the-box*.
 
-As distribuições reproduzem fatos conhecidos da economia espacial da SpaceX:
+The distributions reproduce well-known facts about SpaceX's launch economics:
 
-* **Falcon 1** (2006-2009) teve alta taxa de falha nos primeiros voos.
-* **Falcon 9 / Falcon Heavy** são altamente confiáveis (sucesso > 95%).
-* Missões **GTO** são mais pesadas e levemente mais arriscadas (alta energia).
-* O **reúso** de boosters cresce ao longo dos anos (≈0 antes de 2017).
-* O **sucesso de pouso** melhora com o tempo e é um alvo mais balanceado.
+* **Falcon 1** (2006-2009) had a high failure rate in its early flights.
+* **Falcon 9 / Falcon Heavy** are highly reliable (success > 95%).
+* **GTO** missions carry heavier payloads and are slightly riskier (high energy).
+* Booster **reuse** grows over the years (≈0 before 2017).
+* **Landing success** improves over time and is a more balanced target.
 
-O gerador é determinístico dada a ``seed`` — reprodutibilidade total.
+The generator is deterministic given the ``seed`` — fully reproducible.
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ from ..config import SETTINGS, Settings
 
 logger = logging.getLogger(__name__)
 
-# Cadência anual aproximada de lançamentos (peso amostral por ano).
+# Approximate annual launch cadence (sampling weight per year).
 _YEAR_WEIGHTS: dict[int, float] = {
     2006: 1,
     2007: 1,
@@ -48,7 +48,7 @@ _YEAR_WEIGHTS: dict[int, float] = {
     2024: 130,
 }
 
-# Parâmetros (média, desvio) da massa de payload em kg, por órbita.
+# Payload mass parameters (mean, std) in kg, per orbit.
 _ORBIT_MASS: dict[str, tuple[float, float]] = {
     "LEO": (8000.0, 4500.0),
     "VLEO": (15000.0, 1500.0),
@@ -65,7 +65,7 @@ _F9_SITES = ["CCSFS SLC 40", "KSC LC 39A", "VAFB SLC 4E"]
 
 
 def _pick_rocket(rng: np.random.Generator, year: int) -> str:
-    """Escolhe a versão do foguete coerente com o ano."""
+    """Picks the rocket version consistent with the given year."""
     if year <= 2009:
         return "Falcon 1"
     if year <= 2017:
@@ -74,28 +74,28 @@ def _pick_rocket(rng: np.random.Generator, year: int) -> str:
 
 
 def _reuse_probability(year: int) -> float:
-    """Probabilidade de booster reutilizado em função do ano."""
+    """Probability of a reused booster as a function of year."""
     if year < 2017:
         return 0.0
-    # Sobe de ~0.15 (2017) até ~0.85 (2024), saturando.
+    # Rises from ~0.15 (2017) to ~0.85 (2024), then saturates.
     return float(min(0.85, 0.15 + 0.11 * (year - 2017)))
 
 
 def _landing_probability(year: int, orbit: str, reused: bool) -> float:
-    """Probabilidade de pouso bem-sucedido (alvo alternativo, mais balanceado)."""
+    """Probability of a successful landing (alternative target, more balanced)."""
     base = min(0.92, 0.10 + 0.11 * max(0, year - 2013))
-    if orbit == "GTO":  # alta energia, pouso mais difícil
+    if orbit == "GTO":  # high energy, harder landing
         base -= 0.12
-    if reused:  # booster já provado tende a pousar de novo
+    if reused:  # proven booster tends to land again
         base += 0.05
     return float(np.clip(base, 0.05, 0.97))
 
 
 def _launch_success_probability(year: int, rocket: str, orbit: str) -> float:
-    """Probabilidade de sucesso do lançamento (alvo principal, desbalanceado)."""
-    if rocket == "Falcon 1":  # 2 de 5 sucessos historicamente
+    """Probability of launch success (primary target, imbalanced)."""
+    if rocket == "Falcon 1":  # historically 2 out of 5 successes
         return 0.40
-    base = 0.93 if year <= 2013 else 0.975  # falhas raras nos primeiros F9
+    base = 0.93 if year <= 2013 else 0.975  # rare failures in early F9 flights
     if orbit == "GTO":
         base -= 0.015
     return float(np.clip(base, 0.0, 0.999))
@@ -105,14 +105,14 @@ def generate_synthetic_launches(
     n_rows: int = 1200,
     seed: int = 42,
 ) -> pd.DataFrame:
-    """Gera um DataFrame sintético de lançamentos com o schema do projeto.
+    """Generates a synthetic launches DataFrame with the project schema.
 
     Args:
-        n_rows: Número de linhas a gerar (>= 1.000 recomendado).
-        seed: Semente para reprodutibilidade.
+        n_rows: Number of rows to generate (>= 1,000 recommended).
+        seed: Seed for reproducibility.
 
     Returns:
-        DataFrame com as colunas do dataset processado, ordenado por data.
+        DataFrame with the processed dataset columns, sorted by date.
     """
     rng = np.random.default_rng(seed)
 
@@ -127,7 +127,7 @@ def generate_synthetic_launches(
         rocket = _pick_rocket(rng, year)
         orbit = str(rng.choice(_ORBITS, p=_ORBIT_WEIGHTS / _ORBIT_WEIGHTS.sum()))
 
-        # Massa de payload (com ~6% de valores ausentes para exercitar imputação).
+        # Payload mass (with ~6% missing values to exercise imputation).
         mean, std = _ORBIT_MASS[orbit]
         mass: float | None = float(np.clip(rng.normal(mean, std), 50.0, 22_800.0))
         if rocket == "Falcon 1":
@@ -138,7 +138,7 @@ def generate_synthetic_launches(
         reused = bool(rng.random() < _reuse_probability(year))
         flights = int(rng.integers(2, 13)) if reused else 1
 
-        # Tentativa de pouso: rara no Falcon 1, comum no Falcon 9+ a partir de 2015.
+        # Landing attempt: rare on Falcon 1, common on Falcon 9+ from 2015 onward.
         landing_attempt = rocket != "Falcon 1" and year >= 2015 and rng.random() < 0.9
         gridfins = bool(landing_attempt)
         legs = bool(landing_attempt)
@@ -146,7 +146,7 @@ def generate_synthetic_launches(
             p_land = _landing_probability(year, orbit, reused)
             landing_success: bool | None = bool(rng.random() < p_land)
         else:
-            landing_success = None  # sem tentativa -> alvo alternativo indefinido
+            landing_success = None  # no attempt -> alternative target undefined
 
         success = bool(rng.random() < _launch_success_probability(year, rocket, orbit))
 
@@ -157,7 +157,7 @@ def generate_synthetic_launches(
         else:
             site = str(rng.choice(_F9_SITES, p=[0.5, 0.3, 0.2]))
 
-        # Data sintética dentro do ano (mês/dia aleatórios).
+        # Synthetic date within the year (random month/day).
         month = int(rng.integers(1, 13))
         day = int(rng.integers(1, 29))
         date_utc = f"{year}-{month:02d}-{day:02d}T00:00:00.000Z"
@@ -182,7 +182,7 @@ def generate_synthetic_launches(
 
     frame = pd.DataFrame(records).sort_values("date_utc").reset_index(drop=True)
     frame.insert(0, "flight_number", np.arange(1, len(frame) + 1))
-    logger.info("Dataset sintético gerado: %d linhas", len(frame))
+    logger.info("Synthetic dataset generated: %d rows", len(frame))
     return frame
 
 
@@ -190,18 +190,18 @@ def write_synthetic_dataset(
     n_rows: int = 1200,
     settings: Settings | None = None,
 ) -> pd.DataFrame:
-    """Gera e salva o dataset sintético em ``settings.processed_csv``.
+    """Generates and saves the synthetic dataset to ``settings.processed_csv``.
 
     Args:
-        n_rows: Número de linhas a gerar.
-        settings: Configuração (usa :data:`SETTINGS` se omitida).
+        n_rows: Number of rows to generate.
+        settings: Configuration (uses :data:`SETTINGS` if omitted).
 
     Returns:
-        O DataFrame gerado.
+        The generated DataFrame.
     """
     settings = settings or SETTINGS
     settings.ensure_directories()
     frame = generate_synthetic_launches(n_rows=n_rows, seed=settings.seed)
     frame.to_csv(settings.processed_csv, index=False)
-    logger.info("Dataset sintético salvo em %s", settings.processed_csv)
+    logger.info("Synthetic dataset saved to %s", settings.processed_csv)
     return frame

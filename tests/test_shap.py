@@ -1,4 +1,4 @@
-"""Testes da análise SHAP (explainers de árvore e linear + persistência)."""
+"""Tests for SHAP analysis (tree and linear explainers + persistence)."""
 
 from __future__ import annotations
 
@@ -34,13 +34,13 @@ def _fit(estimator, clean_frame):
 def test_compute_shap_explanation_shape(estimator, clean_frame) -> None:
     pipeline, x_te = _fit(estimator, clean_frame)
     explanation = compute_shap_explanation(pipeline, x_te, max_samples=30)
-    # 2D: (n_amostras, n_features_codificadas).
+    # 2D: (n_samples, n_encoded_features).
     assert explanation.values.ndim == 2
     assert explanation.values.shape[0] == min(30, len(x_te))
     assert len(explanation.feature_names) == explanation.values.shape[1]
 
 
-def test_run_shap_analysis_salva_figuras(clean_frame, tmp_settings) -> None:
+def test_run_shap_analysis_saves_figures(clean_frame, tmp_settings) -> None:
     pipeline, x_te = _fit(RandomForestClassifier(n_estimators=20, random_state=42), clean_frame)
     paths = run_shap_analysis(pipeline, x_te, tmp_settings)
     assert set(paths) == {"summary", "bar", "waterfall"}

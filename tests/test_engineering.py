@@ -1,4 +1,4 @@
-"""Testes da engenharia de atributos e do pré-processador (sem leakage)."""
+"""Tests for feature engineering and the preprocessor (no leakage)."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from launch_success.features.engineering import (
 )
 
 
-def test_add_derived_features_extrai_year() -> None:
+def test_add_derived_features_extracts_year() -> None:
     frame = pd.DataFrame(
         {"date_utc": ["2018-02-06T20:45:00.000Z", "2022-12-01T00:00:00Z"], "year": [np.nan, np.nan]}
     )
@@ -29,29 +29,29 @@ def test_split_features_target(clean_frame: pd.DataFrame) -> None:
     assert set(y.unique()) <= {0, 1}
 
 
-def test_preprocessor_shape_e_sem_leakage(clean_frame: pd.DataFrame) -> None:
+def test_preprocessor_shape_and_no_leakage(clean_frame: pd.DataFrame) -> None:
     settings = Settings()
     x, y = split_features_target(clean_frame, settings=settings, target="success")
     pre = build_preprocessor(settings)
 
-    # Ajusta apenas no "treino" (metade) e transforma o "teste" (outra metade).
+    # Fit only on the "train" half and transform the "test" half.
     half = len(x) // 2
     x_train, x_test = x.iloc[:half], x.iloc[half:]
     pre.fit(x_train)
     transformed_train = pre.transform(x_train)
     transformed_test = pre.transform(x_test)
 
-    # Mesmo número de colunas em treino e teste (OneHot handle_unknown="ignore").
+    # Train and test must have the same number of columns (OneHot handle_unknown="ignore").
     assert transformed_train.shape[1] == transformed_test.shape[1]
     assert transformed_train.shape[0] == len(x_train)
-    # Nenhum NaN após imputação.
+    # No NaNs remain after imputation.
     dense_test = (
         transformed_test.toarray() if hasattr(transformed_test, "toarray") else transformed_test
     )
     assert not np.isnan(dense_test).any()
 
 
-def test_onehot_ignora_categoria_desconhecida() -> None:
+def test_onehot_ignores_unknown_category() -> None:
     settings = Settings()
     train = pd.DataFrame(
         {
@@ -68,8 +68,8 @@ def test_onehot_ignora_categoria_desconhecida() -> None:
         }
     )
     test = train.copy()
-    test.loc[0, "rocket"] = "Starship"  # categoria nunca vista no treino
+    test.loc[0, "rocket"] = "Starship"  # category never seen during training
     pre = build_preprocessor(settings)
     pre.fit(train)
-    # Não deve levantar erro graças a handle_unknown="ignore".
+    # Must not raise an error thanks to handle_unknown="ignore".
     assert pre.transform(test).shape[1] == pre.transform(train).shape[1]

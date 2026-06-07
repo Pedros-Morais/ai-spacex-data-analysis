@@ -1,4 +1,4 @@
-"""Testes de treino, validação cruzada e seleção de modelos."""
+"""Tests for training, cross-validation, and model selection."""
 
 from __future__ import annotations
 
@@ -42,15 +42,15 @@ def xy(clean_frame, fast_settings):
     return split_features_target(clean_frame, settings=fast_settings, target="success")
 
 
-def test_stratified_split_proporcoes(xy, fast_settings) -> None:
+def test_stratified_split_proportions(xy, fast_settings) -> None:
     x, y = xy
     x_train, x_test, y_train, y_test = stratified_split(x, y, fast_settings)
     assert len(x_train) + len(x_test) == len(x)
-    # Estratificação: taxa da classe positiva próxima entre treino e teste.
+    # Stratification: positive-class rate should be close between train and test.
     assert abs(y_train.mean() - y_test.mean()) < 0.05
 
 
-def test_build_pipeline_tipo() -> None:
+def test_build_pipeline_type() -> None:
     estimator = LogisticRegression()
     assert isinstance(build_pipeline(estimator, Settings(use_smote=False)), Pipeline)
     smote_pipe = build_pipeline(estimator, Settings(use_smote=True))
@@ -58,7 +58,7 @@ def test_build_pipeline_tipo() -> None:
     assert "smote" in dict(smote_pipe.steps)
 
 
-def test_train_and_evaluate_retorna_metricas(xy, fast_settings) -> None:
+def test_train_and_evaluate_returns_metrics(xy, fast_settings) -> None:
     x, y = xy
     x_tr, x_te, y_tr, y_te = stratified_split(x, y, fast_settings)
     result = train_and_evaluate(
@@ -76,7 +76,7 @@ def test_train_and_evaluate_retorna_metricas(xy, fast_settings) -> None:
     assert len(result["y_pred"]) == len(y_te)
 
 
-def test_reprodutibilidade_com_seed(xy, fast_settings) -> None:
+def test_reproducibility_with_seed(xy, fast_settings) -> None:
     x, y = xy
     x_tr, x_te, y_tr, y_te = stratified_split(x, y, fast_settings)
     est = lambda: RandomForestClassifier(n_estimators=25, random_state=42)  # noqa: E731
@@ -86,7 +86,7 @@ def test_reprodutibilidade_com_seed(xy, fast_settings) -> None:
     assert r1["cv_mean"] == r2["cv_mean"]
 
 
-def test_train_all_e_select_best(xy, fast_settings, small_registry) -> None:
+def test_train_all_and_select_best(xy, fast_settings, small_registry) -> None:
     x, y = xy
     x_tr, x_te, y_tr, y_te = stratified_split(x, y, fast_settings)
     results = train_all_models(x_tr, y_tr, x_te, y_te, fast_settings, registry=small_registry)
@@ -96,6 +96,6 @@ def test_train_all_e_select_best(xy, fast_settings, small_registry) -> None:
     assert best["cv_mean"] == max(r["cv_mean"] for r in results.values())
 
 
-def test_select_best_vazio_levanta_erro() -> None:
-    with pytest.raises(ValueError, match="Nenhum resultado"):
+def test_select_best_empty_raises_error() -> None:
+    with pytest.raises(ValueError, match="No model results"):
         select_best_model({})

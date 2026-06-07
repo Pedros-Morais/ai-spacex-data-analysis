@@ -1,4 +1,4 @@
-"""Testes do cliente HTTP da API v4 (sem rede real — respostas mockadas)."""
+"""Tests for the API v4 HTTP client (no real network — mocked responses)."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ BASE = "https://api.spacexdata.com/v4"
 
 @pytest.fixture
 def client() -> SpaceXClient:
-    # Sem retries para manter os testes rápidos e determinísticos.
+    # No retries to keep tests fast and deterministic.
     return SpaceXClient(Settings(api_max_retries=0))
 
 

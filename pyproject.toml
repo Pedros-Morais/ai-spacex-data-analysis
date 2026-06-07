@@ -79,7 +79,8 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["D101", "D102", "D103", "D105"]   # docstrings not required in tests
+# Docstrings not required in tests; N806 allows the idiomatic ML `X`/`y` names.
+"tests/*" = ["D101", "D102", "D103", "D105", "N806"]
 "scripts/*" = ["D103"]
 
 [tool.ruff.lint.pydocstyle]

@@ -1,4 +1,4 @@
-"""Testes dos gráficos de EDA e avaliação (geração de arquivos)."""
+"""Tests for EDA and evaluation plots (file generation)."""
 
 from __future__ import annotations
 

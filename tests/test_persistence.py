@@ -1,4 +1,4 @@
-"""Testes de serialização/carregamento de modelos com joblib."""
+"""Tests for model serialization and loading with joblib."""
 
 from __future__ import annotations
 
@@ -23,7 +23,7 @@ def fitted_pipeline(clean_frame):
     return pipeline, x
 
 
-def test_save_load_preve_identico(fitted_pipeline, tmp_settings) -> None:
+def test_save_load_predicts_identically(fitted_pipeline, tmp_settings) -> None:
     pipeline, x = fitted_pipeline
     before = pipeline.predict(x)
     save_model(pipeline, settings=tmp_settings)
@@ -39,12 +39,12 @@ def test_metadata_roundtrip(fitted_pipeline, tmp_settings) -> None:
     assert load_metadata(settings=tmp_settings) == meta
 
 
-def test_load_inexistente_levanta_erro(tmp_settings) -> None:
+def test_load_nonexistent_raises_error(tmp_settings) -> None:
     with pytest.raises(ModelNotFoundError):
         load_model(settings=tmp_settings)
 
 
-def test_metadata_ausente_retorna_vazio(fitted_pipeline, tmp_settings) -> None:
+def test_missing_metadata_returns_empty_dict(fitted_pipeline, tmp_settings) -> None:
     pipeline, _ = fitted_pipeline
-    save_model(pipeline, settings=tmp_settings)  # sem metadata
+    save_model(pipeline, settings=tmp_settings)  # no metadata
     assert load_metadata(settings=tmp_settings) == {}

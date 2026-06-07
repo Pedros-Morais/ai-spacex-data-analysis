@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-"""Gera o dataset sintético de fallback versionado (>= 1.000 linhas).
+"""Generates the versioned synthetic fallback dataset (>= 1,000 rows).
 
-Use quando a API estiver indisponível ou para regenerar o snapshot de exemplo
-que acompanha o repositório.
+Use when the API is unavailable or to regenerate the example snapshot
+that ships with the repository.
 
-Uso:
+Usage:
     python scripts/generate_dataset.py [n_linhas]
 """
 
@@ -20,14 +20,14 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(messag
 
 
 def main() -> None:
-    """Gera o CSV sintético; aceita o número de linhas como argumento."""
+    """Generates the synthetic CSV; accepts the number of rows as an argument."""
     n_rows = int(sys.argv[1]) if len(sys.argv) > 1 else 1200
     frame = write_synthetic_dataset(n_rows=n_rows, settings=SETTINGS)
-    print(f"Dataset sintético gerado: {len(frame)} linhas -> {SETTINGS.processed_csv}")
-    print(f"Taxa de sucesso de lançamento: {frame['success'].mean():.1%}")
+    print(f"Synthetic dataset generated: {len(frame)} rows -> {SETTINGS.processed_csv}")
+    print(f"Launch success rate: {frame['success'].mean():.1%}")
     landings = frame["landing_success"].dropna()
     if not landings.empty:
-        print(f"Taxa de sucesso de pouso (entre tentativas): {landings.mean():.1%}")
+        print(f"Landing success rate (among attempts): {landings.mean():.1%}")
 
 
 if __name__ == "__main__":

@@ -1,11 +1,11 @@
-"""Ingestão: busca os endpoints da API v4, resolve os ids e produz o dataset.
+"""Ingestion: fetches API v4 endpoints, resolves IDs, and produces the dataset.
 
-Estratégia: a API expõe coleções completas em ``/rockets``, ``/payloads`` e
-``/launchpads``; construímos tabelas de lookup ``id -> valor`` e resolvemos
-cada lançamento em **uma linha** com as ~12 features do projeto.
+Strategy: the API exposes full collections at ``/rockets``, ``/payloads``, and
+``/launchpads``; we build ``id -> value`` lookup tables and resolve each launch
+into **one row** with the ~12 project features.
 
-As funções de transformação (ex.: :func:`aggregate_payload_mass`) são puras e
-testáveis isoladamente; o I/O (rede e disco) fica concentrado em :func:`ingest`.
+The transformation functions (e.g. :func:`aggregate_payload_mass`) are pure and
+testable in isolation; I/O (network and disk) is concentrated in :func:`ingest`.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from .spacex_client import SpaceXClient
 
 logger = logging.getLogger(__name__)
 
-# Colunas (na ordem) que o dataset processado deve conter.
+# Columns (in order) that the processed dataset must contain.
 DATASET_COLUMNS: tuple[str, ...] = (
     "flight_number",
     "date_utc",
@@ -42,29 +42,29 @@ DATASET_COLUMNS: tuple[str, ...] = (
 
 
 # --------------------------------------------------------------------------- #
-# Funções de transformação puras
+# Pure transformation functions
 # --------------------------------------------------------------------------- #
 def aggregate_payload_mass(payloads: list[Payload]) -> float | None:
-    """Soma a massa (kg) de todos os payloads de um lançamento.
+    """Sums the mass (kg) of all payloads for a launch.
 
     Args:
-        payloads: Payloads já resolvidos do lançamento.
+        payloads: Resolved payloads for the launch.
 
     Returns:
-        Massa total em kg, ou ``None`` se nenhum payload informar massa.
+        Total mass in kg, or ``None`` if no payload reports a mass.
     """
     masses = [p.mass_kg for p in payloads if p.mass_kg is not None]
     return float(sum(masses)) if masses else None
 
 
 def primary_orbit(payloads: list[Payload]) -> str | None:
-    """Retorna a órbita do payload principal (o primeiro com órbita definida).
+    """Returns the orbit of the primary payload (the first one with a defined orbit).
 
     Args:
-        payloads: Payloads já resolvidos do lançamento.
+        payloads: Resolved payloads for the launch.
 
     Returns:
-        Sigla da órbita, ou ``None`` se nenhuma estiver definida.
+        Orbit code, or ``None`` if none is defined.
     """
     for payload in payloads:
         if payload.orbit:
@@ -73,29 +73,29 @@ def primary_orbit(payloads: list[Payload]) -> str | None:
 
 
 def select_primary_core(cores: list[Core]) -> Core | None:
-    """Seleciona o core principal de um lançamento.
+    """Selects the primary core of a launch.
 
-    O Falcon Heavy possui 3 cores; por convenção usamos o **primeiro** da lista
-    (core central/primário) para derivar ``reused``, ``flights`` etc. — escolha
-    documentada no ``data/README.md``.
+    Falcon Heavy has 3 cores; by convention we use the **first** in the list
+    (the central/primary core) to derive ``reused``, ``flights``, etc. — a
+    choice documented in ``data/README.md``.
 
     Args:
-        cores: Lista de cores do lançamento.
+        cores: List of cores for the launch.
 
     Returns:
-        O core principal, ou ``None`` se a lista estiver vazia.
+        The primary core, or ``None`` if the list is empty.
     """
     return cores[0] if cores else None
 
 
 def parse_year(date_utc: str | None) -> int | None:
-    """Extrai o ano (UTC) de um timestamp ISO-8601 da API.
+    """Extracts the year (UTC) from an ISO-8601 timestamp returned by the API.
 
     Args:
-        date_utc: Timestamp como ``"2006-03-24T22:30:00.000Z"``.
+        date_utc: Timestamp such as ``"2006-03-24T22:30:00.000Z"``.
 
     Returns:
-        O ano como inteiro, ou ``None`` se a data for inválida/ausente.
+        The year as an integer, or ``None`` if the date is invalid or absent.
     """
     if not date_utc or len(date_utc) < 4:
         return None
@@ -106,14 +106,14 @@ def parse_year(date_utc: str | None) -> int | None:
 
 
 def build_lookup(items: list[dict[str, Any]], value_key: str) -> dict[str, Any]:
-    """Constrói um dicionário ``id -> item[value_key]`` a partir de uma coleção.
+    """Builds an ``id -> item[value_key]`` dictionary from a collection.
 
     Args:
-        items: Coleção de entidades da API (cada uma com a chave ``"id"``).
-        value_key: Chave cujo valor será mapeado.
+        items: Collection of API entities (each with an ``"id"`` key).
+        value_key: Key whose value will be mapped.
 
     Returns:
-        Mapa de id para o valor correspondente.
+        Map from id to the corresponding value.
     """
     return {item["id"]: item.get(value_key) for item in items if "id" in item}
 
@@ -121,7 +121,7 @@ def build_lookup(items: list[dict[str, Any]], value_key: str) -> dict[str, Any]:
 def _resolve_payloads(
     payload_ids: list[str], payload_lookup: dict[str, dict[str, Any]]
 ) -> list[Payload]:
-    """Resolve ids de payload em objetos :class:`Payload`."""
+    """Resolves payload IDs into :class:`Payload` objects."""
     resolved: list[Payload] = []
     for pid in payload_ids:
         raw = payload_lookup.get(pid)
@@ -136,16 +136,16 @@ def resolve_launch(
     payload_lookup: dict[str, dict[str, Any]],
     launchpad_lookup: dict[str, str],
 ) -> dict[str, Any]:
-    """Resolve um lançamento cru em uma linha do dataset (uma feature por chave).
+    """Resolves a raw launch into a dataset row (one feature per key).
 
     Args:
-        launch: Objeto de lançamento cru da API.
-        rocket_lookup: Mapa ``rocket_id -> nome``.
-        payload_lookup: Mapa ``payload_id -> {mass_kg, orbit}``.
-        launchpad_lookup: Mapa ``launchpad_id -> nome``.
+        launch: Raw launch object from the API.
+        rocket_lookup: Map ``rocket_id -> name``.
+        payload_lookup: Map ``payload_id -> {mass_kg, orbit}``.
+        launchpad_lookup: Map ``launchpad_id -> name``.
 
     Returns:
-        Dicionário com as colunas de :data:`DATASET_COLUMNS`.
+        Dictionary with the columns from :data:`DATASET_COLUMNS`.
     """
     payloads = _resolve_payloads(launch.get("payloads", []), payload_lookup)
     cores = [Core.model_validate(c) for c in launch.get("cores", [])]
@@ -165,7 +165,7 @@ def resolve_launch(
         "legs": core.legs,
         "landing_success": core.landing_success,
         "success": launch.get("success"),
-        # Mantido apenas para filtragem posterior; removido na limpeza.
+        # Kept only for downstream filtering; removed during cleaning.
         "upcoming": launch.get("upcoming", False),
     }
 
@@ -176,16 +176,16 @@ def launches_to_dataframe(
     payloads: list[dict[str, Any]],
     launchpads: list[dict[str, Any]],
 ) -> pd.DataFrame:
-    """Junta as quatro coleções da API em um DataFrame (uma linha por lançamento).
+    """Joins the four API collections into a DataFrame (one row per launch).
 
     Args:
-        launches: Lançamentos crus.
-        rockets: Foguetes crus.
-        payloads: Payloads crus.
-        launchpads: Launchpads crus.
+        launches: Raw launches.
+        rockets: Raw rockets.
+        payloads: Raw payloads.
+        launchpads: Raw launchpads.
 
     Returns:
-        DataFrame com as colunas de :data:`DATASET_COLUMNS` (+ ``upcoming``).
+        DataFrame with the columns from :data:`DATASET_COLUMNS` (+ ``upcoming``).
     """
     rocket_lookup = build_lookup(rockets, "name")
     launchpad_lookup = build_lookup(launchpads, "name")
@@ -197,7 +197,7 @@ def launches_to_dataframe(
     ]
     frame = pd.DataFrame(rows)
     ordered = [*DATASET_COLUMNS, "upcoming"]
-    # Garante todas as colunas mesmo se a API omitir alguma.
+    # Ensures all columns are present even if the API omits some.
     for column in ordered:
         if column not in frame.columns:
             frame[column] = None
@@ -205,40 +205,40 @@ def launches_to_dataframe(
 
 
 # --------------------------------------------------------------------------- #
-# Orquestração de I/O
+# I/O orchestration
 # --------------------------------------------------------------------------- #
 def ingest(
     client: SpaceXClient | None = None,
     settings: Settings | None = None,
     save: bool = True,
 ) -> pd.DataFrame:
-    """Busca a API, consolida o dataset e (opcionalmente) persiste em disco.
+    """Fetches the API, consolidates the dataset, and optionally persists it to disk.
 
     Args:
-        client: Cliente da API (injetável; criado se omitido).
-        settings: Configuração (usa :data:`SETTINGS` se omitida).
-        save: Se ``True``, salva o JSON cru e o CSV processado.
+        client: API client (injectable; created if omitted).
+        settings: Configuration (uses :data:`SETTINGS` if omitted).
+        save: If ``True``, saves the raw JSON and the processed CSV.
 
     Returns:
-        DataFrame cru consolidado (antes da limpeza).
+        Consolidated raw DataFrame (before cleaning).
 
     Raises:
-        IngestionError: Se qualquer endpoint falhar.
+        IngestionError: If any endpoint fails.
     """
     settings = settings or SETTINGS
     client = client or SpaceXClient(settings)
 
-    logger.info("Iniciando ingestão da API v4 da SpaceX")
+    logger.info("Starting ingestion from the SpaceX API v4")
     launches = client.get_launches()
     rockets = client.get_rockets()
     payloads = client.get_payloads()
     launchpads = client.get_launchpads()
 
     if not launches:
-        raise IngestionError("Endpoint /launches retornou uma lista vazia")
+        raise IngestionError("Endpoint /launches returned an empty list")
 
     frame = launches_to_dataframe(launches, rockets, payloads, launchpads)
-    logger.info("Consolidados %d lançamentos", len(frame))
+    logger.info("Consolidated %d launches", len(frame))
 
     if save:
         settings.ensure_directories()
@@ -255,16 +255,16 @@ def ingest(
             encoding="utf-8",
         )
         frame.to_csv(settings.processed_csv, index=False)
-        logger.info("Dataset salvo em %s", settings.processed_csv)
+        logger.info("Dataset saved to %s", settings.processed_csv)
 
     return frame
 
 
 def main() -> None:  # pragma: no cover - thin CLI wrapper
-    """Ponto de entrada de linha de comando para a ingestão."""
+    """Command-line entry point for ingestion."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     frame = ingest()
-    print(f"Ingestão concluída: {len(frame)} lançamentos salvos em {SETTINGS.processed_csv}")
+    print(f"Ingestion complete: {len(frame)} launches saved to {SETTINGS.processed_csv}")
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -1,13 +1,13 @@
-"""Limpeza do dataset cru: filtragem, coerção de tipos e tratamento de nulos.
+"""Raw dataset cleaning: filtering, type coercion, and null handling.
 
-Regras (documentadas no enunciado):
+Rules (as documented in the specification):
 
-* descartar lançamentos futuros (``upcoming == True``);
-* descartar linhas cujo **alvo** é nulo (lançamentos sem desfecho conhecido);
-* coagir booleanos para ``{0.0, 1.0, NaN}`` e numéricos para ``float``;
-* manter categóricas como texto (nulos tratados depois pelo imputer).
+* discard future launches (``upcoming == True``);
+* discard rows whose **target** is null (launches with no known outcome);
+* coerce booleans to ``{0.0, 1.0, NaN}`` and numerics to ``float``;
+* keep categoricals as text (nulls handled later by the imputer).
 
-As funções operam sobre uma **cópia** do DataFrame (sem efeitos colaterais).
+Functions operate on a **copy** of the DataFrame (no side effects).
 """
 
 from __future__ import annotations
@@ -22,22 +22,22 @@ from ..exceptions import DataValidationError
 
 logger = logging.getLogger(__name__)
 
-# Valores textuais interpretados como verdadeiro/falso ao ler CSVs.
+# Text values interpreted as true/false when reading CSVs.
 _TRUE_TOKENS = frozenset({"true", "1", "1.0", "yes", "t"})
 _FALSE_TOKENS = frozenset({"false", "0", "0.0", "no", "f"})
 
 
 def coerce_boolean(series: pd.Series) -> pd.Series:
-    """Coage uma série para ``float`` em ``{1.0, 0.0, NaN}``.
+    """Coerces a series to ``float`` in ``{1.0, 0.0, NaN}``.
 
-    Aceita ``bool``, inteiros, floats e strings (``"True"``/``"False"``),
-    preservando ausências como ``NaN`` para imputação posterior.
+    Accepts ``bool``, integers, floats, and strings (``"True"``/``"False"``),
+    preserving missing values as ``NaN`` for later imputation.
 
     Args:
-        series: Série a ser coagida.
+        series: Series to coerce.
 
     Returns:
-        Série de ``float`` com valores em ``{1.0, 0.0, NaN}``.
+        Float series with values in ``{1.0, 0.0, NaN}``.
     """
 
     def _map(value: object) -> float:
@@ -58,7 +58,7 @@ def coerce_boolean(series: pd.Series) -> pd.Series:
 
 
 def _coerce_categorical(series: pd.Series) -> pd.Series:
-    """Converte para texto, mantendo ausências como ``NaN``."""
+    """Converts to text, keeping missing values as ``NaN``."""
     return series.map(lambda v: str(v) if pd.notna(v) else np.nan)
 
 
@@ -67,41 +67,41 @@ def clean_launches(
     settings: Settings | None = None,
     target: str | None = None,
 ) -> pd.DataFrame:
-    """Limpa o dataset cru e devolve uma cópia pronta para a engenharia.
+    """Cleans the raw dataset and returns a copy ready for feature engineering.
 
     Args:
-        frame: DataFrame cru (da ingestão ou do snapshot).
-        settings: Configuração (usa :data:`SETTINGS` se omitida).
-        target: Alvo a preservar; se omitido, usa ``settings.target``.
+        frame: Raw DataFrame (from ingestion or snapshot).
+        settings: Configuration (uses :data:`SETTINGS` if omitted).
+        target: Target column to preserve; if omitted, uses ``settings.target``.
 
     Returns:
-        DataFrame limpo: sem ``upcoming``, sem alvo nulo, tipos coagidos.
+        Cleaned DataFrame: no ``upcoming``, no null target, coerced types.
 
     Raises:
-        DataValidationError: Se o alvo não existir ou se nada restar após a
-            limpeza.
+        DataValidationError: If the target column does not exist or if no rows
+            remain after cleaning.
     """
     settings = settings or SETTINGS
     target = target or settings.target
 
     if target not in frame.columns:
-        raise DataValidationError(f"Coluna alvo '{target}' ausente no dataset.")
+        raise DataValidationError(f"Target column '{target}' not found in the dataset.")
 
     df = frame.copy()
 
-    # 1) Remove lançamentos futuros, se a coluna existir.
+    # 1) Remove future launches, if the column exists.
     if "upcoming" in df.columns:
         upcoming = coerce_boolean(df["upcoming"]).fillna(0.0)
         df = df[upcoming == 0.0].copy()
 
-    # 2) Coage o alvo e descarta linhas sem desfecho conhecido.
+    # 2) Coerce the target and drop rows with no known outcome.
     df[target] = coerce_boolean(df[target])
     before = len(df)
     df = df[df[target].notna()].copy()
-    logger.info("Removidas %d linhas com alvo '%s' nulo", before - len(df), target)
+    logger.info("Removed %d rows with null target '%s'", before - len(df), target)
     df[target] = df[target].astype(int)
 
-    # 3) Coage tipos das features.
+    # 3) Coerce feature types.
     for column in settings.numeric_features:
         if column in df.columns:
             df[column] = pd.to_numeric(df[column], errors="coerce")
@@ -113,7 +113,7 @@ def clean_launches(
             df[column] = _coerce_categorical(df[column])
 
     if df.empty:
-        raise DataValidationError("Nenhuma linha restante após a limpeza.")
+        raise DataValidationError("No rows left after cleaning.")
 
-    logger.info("Dataset limpo: %d linhas, alvo '%s'", len(df), target)
+    logger.info("Cleaned dataset: %d rows, target '%s'", len(df), target)
     return df.reset_index(drop=True)

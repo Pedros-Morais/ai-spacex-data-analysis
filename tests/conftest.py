@@ -1,7 +1,7 @@
-"""Fixtures compartilhadas pelos testes.
+"""Shared fixtures for the test suite.
 
-Inclui um JSON mockado da API v4 (sem rede real), um ``Settings`` apontando
-para diretórios temporários e DataFrames de exemplo (cru e limpo).
+Includes a mocked API v4 JSON response (no real network), a ``Settings`` instance pointing
+to temporary directories, and sample DataFrames (raw and cleaned).
 """
 
 from __future__ import annotations
@@ -18,10 +18,10 @@ from launch_success.features.cleaning import clean_launches
 
 @pytest.fixture
 def mock_api() -> dict[str, list[dict[str, Any]]]:
-    """JSON mockado das quatro coleções da API v4 da SpaceX.
+    """Mocked JSON for the four collections of the SpaceX API v4.
 
-    Contém um lançamento normal, um futuro (``upcoming``) e um sem desfecho
-    (``success`` nulo), exercitando as regras de limpeza.
+    Contains one normal launch, one upcoming launch, and one with a null outcome
+    (``success`` is null), exercising the cleaning rules.
     """
     launches = [
         {
@@ -86,7 +86,7 @@ def mock_api() -> dict[str, list[dict[str, Any]]]:
 
 @pytest.fixture
 def tmp_settings(tmp_path) -> Settings:
-    """Settings com diretórios isolados em ``tmp_path`` e CV reduzida."""
+    """Settings with isolated directories under ``tmp_path`` and reduced CV folds."""
     return Settings(
         seed=42,
         cv_folds=3,
@@ -100,11 +100,11 @@ def tmp_settings(tmp_path) -> Settings:
 
 @pytest.fixture
 def raw_frame() -> pd.DataFrame:
-    """DataFrame cru sintético pequeno (determinístico)."""
+    """Small deterministic synthetic raw DataFrame."""
     return generate_synthetic_launches(n_rows=200, seed=7)
 
 
 @pytest.fixture
 def clean_frame(raw_frame: pd.DataFrame) -> pd.DataFrame:
-    """DataFrame limpo para o alvo principal ``success``."""
+    """Cleaned DataFrame for the primary target ``success``."""
     return clean_launches(raw_frame, target="success")

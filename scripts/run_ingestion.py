@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-"""Busca os dados da API v4 da SpaceX e grava o CSV processado.
+"""Fetches data from the SpaceX v4 API and writes the processed CSV.
 
-Caminho canônico da entrega: ingestão real via API. Se a API estiver
-indisponível (offline/ambiente de correção), cai para o gerador sintético
-versionado, garantindo que o pipeline rode sem travar.
+Canonical delivery path: real ingestion via API. If the API is
+unavailable (offline/grading environment), falls back to the versioned
+synthetic generator, ensuring the pipeline runs without stalling.
 
-Uso:
+Usage:
     python scripts/run_ingestion.py
 """
 
@@ -23,14 +23,14 @@ logger = logging.getLogger("run_ingestion")
 
 
 def main() -> None:
-    """Tenta a ingestão real; em falha, gera o dataset de fallback."""
+    """Attempts real ingestion; on failure, generates the fallback dataset."""
     try:
         frame = ingest(settings=SETTINGS)
-        print(f"Ingestão real concluída: {len(frame)} lançamentos -> {SETTINGS.processed_csv}")
+        print(f"Real ingestion complete: {len(frame)} launches -> {SETTINGS.processed_csv}")
     except IngestionError as exc:
-        logger.warning("API indisponível (%s). Gerando dataset sintético de fallback.", exc)
+        logger.warning("API unavailable (%s). Generating synthetic fallback dataset.", exc)
         frame = write_synthetic_dataset(settings=SETTINGS)
-        print(f"Fallback sintético gerado: {len(frame)} linhas -> {SETTINGS.processed_csv}")
+        print(f"Synthetic fallback generated: {len(frame)} rows -> {SETTINGS.processed_csv}")
 
 
 if __name__ == "__main__":

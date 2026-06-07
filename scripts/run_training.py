@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-"""Roda o pipeline de treino completo (treina, compara, escolhe, salva, SHAP).
+"""Runs the full training pipeline (train, compare, select, save, SHAP).
 
-Uso:
+Usage:
     python scripts/run_training.py
 """
 
@@ -15,13 +15,13 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(messag
 
 
 def main() -> None:
-    """Executa o pipeline e imprime a tabela comparativa de modelos."""
+    """Runs the pipeline and prints the model comparison table."""
     summary = run_pipeline()
-    print("\n=== Comparação de modelos (ordenado por CV) ===")
+    print("\n=== Model comparison (sorted by CV) ===")
     print(summary["metrics_table"].round(4).to_string())
-    print(f"\nMelhor modelo: {summary['best_name']}")
-    print(f"Modelo salvo em: {summary['model_path']}")
-    print(f"Figuras geradas: {len(summary['figures'])} em reports/figures/")
+    print(f"\nBest model: {summary['best_name']}")
+    print(f"Model saved to: {summary['model_path']}")
+    print(f"Figures generated: {len(summary['figures'])} in reports/figures/")
 
 
 if __name__ == "__main__":

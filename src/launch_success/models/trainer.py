@@ -1,11 +1,11 @@
-"""Treino, validação cruzada e avaliação dos modelos candidatos.
+"""Training, cross-validation, and evaluation of candidate models.
 
-Cada modelo é embrulhado em um :class:`~sklearn.pipeline.Pipeline` que contém o
-pré-processamento (ajustado **apenas** no treino, sem leakage) e, opcionalmente,
-SMOTE aplicado somente ao fold de treino (via pipeline do ``imbalanced-learn``).
+Each model is wrapped in a :class:`~sklearn.pipeline.Pipeline` containing the
+preprocessor (fitted **only** on the training fold, no leakage) and, optionally,
+SMOTE applied solely to the training fold (via the ``imbalanced-learn`` pipeline).
 
-A seleção do melhor modelo usa a métrica de validação cruzada estratificada
-(``settings.selection_metric``, padrão ``f1``), não a acurácia.
+Best-model selection uses the stratified cross-validation metric
+(``settings.selection_metric``, default ``f1``), not accuracy.
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ from .registry import get_model_registry
 
 logger = logging.getLogger(__name__)
 
-# Mapeia a métrica de seleção para o scorer correspondente do scikit-learn.
+# Maps the selection metric to the corresponding scikit-learn scorer.
 _SCORER_MAP: dict[str, str] = {
     "accuracy": "accuracy",
     "precision": "precision",
@@ -44,15 +44,15 @@ def stratified_split(
     y: pd.Series,
     settings: Settings | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
-    """Divide ``(X, y)`` em treino/teste de forma estratificada.
+    """Splits ``(X, y)`` into train/test sets in a stratified manner.
 
     Args:
-        x: Matriz de features.
-        y: Vetor alvo.
-        settings: Configuração (usa :data:`SETTINGS` se omitida).
+        x: Feature matrix.
+        y: Target vector.
+        settings: Configuration (uses :data:`SETTINGS` if omitted).
 
     Returns:
-        Tupla ``(X_train, X_test, y_train, y_test)``.
+        Tuple ``(X_train, X_test, y_train, y_test)``.
     """
     settings = settings or SETTINGS
     return train_test_split(
@@ -65,14 +65,14 @@ def stratified_split(
 
 
 def build_pipeline(estimator: BaseEstimator, settings: Settings | None = None) -> Pipeline:
-    """Monta o pipeline ``pré-processamento [-> SMOTE] -> modelo``.
+    """Assembles the ``preprocessing [-> SMOTE] -> model`` pipeline.
 
     Args:
-        estimator: Estimador candidato (não-ajustado).
-        settings: Configuração (usa :data:`SETTINGS` se omitida).
+        estimator: Candidate estimator (unfitted).
+        settings: Configuration (uses :data:`SETTINGS` if omitted).
 
     Returns:
-        Pipeline pronto para ``fit`` (do ``imbalanced-learn`` se SMOTE ativo).
+        Pipeline ready for ``fit`` (from ``imbalanced-learn`` if SMOTE is active).
     """
     settings = settings or SETTINGS
     preprocessor = build_preprocessor(settings)
@@ -93,20 +93,20 @@ def cross_validate_score(
     y_train: pd.Series,
     settings: Settings | None = None,
 ) -> tuple[float, float]:
-    """Roda validação cruzada estratificada e retorna média e desvio do score.
+    """Runs stratified cross-validation and returns the mean and std of the score.
 
     Args:
-        pipeline: Pipeline não-ajustado.
-        x_train: Features de treino.
-        y_train: Alvo de treino.
-        settings: Configuração (usa :data:`SETTINGS` se omitida).
+        pipeline: Unfitted pipeline.
+        x_train: Training features.
+        y_train: Training target.
+        settings: Configuration (uses :data:`SETTINGS` if omitted).
 
     Returns:
-        Par ``(média, desvio)`` da métrica de seleção nos folds.
+        Pair ``(mean, std)`` of the selection metric across folds.
     """
     settings = settings or SETTINGS
     scorer = _SCORER_MAP.get(settings.selection_metric, "f1")
-    # Garante folds viáveis mesmo em datasets pequenos (ex.: testes).
+    # Ensures viable folds even on small datasets (e.g. tests).
     min_class = int(y_train.value_counts().min())
     n_splits = max(2, min(settings.cv_folds, min_class))
     cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=settings.seed)
@@ -123,19 +123,19 @@ def train_and_evaluate(
     y_test: pd.Series,
     settings: Settings | None = None,
 ) -> dict[str, Any]:
-    """Treina, valida (CV) e avalia (teste) um único modelo.
+    """Trains, cross-validates, and evaluates a single model.
 
     Args:
-        name: Nome do modelo (chave do registro).
-        estimator: Estimador candidato.
-        x_train: Features de treino.
-        y_train: Alvo de treino.
-        x_test: Features de teste.
-        y_test: Alvo de teste.
-        settings: Configuração (usa :data:`SETTINGS` se omitida).
+        name: Model name (registry key).
+        estimator: Candidate estimator.
+        x_train: Training features.
+        y_train: Training target.
+        x_test: Test features.
+        y_test: Test target.
+        settings: Configuration (uses :data:`SETTINGS` if omitted).
 
     Returns:
-        Dicionário com pipeline ajustado, scores de CV e métricas de teste.
+        Dictionary with the fitted pipeline, CV scores, and test metrics.
     """
     settings = settings or SETTINGS
     pipeline = build_pipeline(estimator, settings)
@@ -148,7 +148,7 @@ def train_and_evaluate(
     metrics = compute_metrics(y_test, y_pred, y_proba)
 
     logger.info(
-        "%s | CV %s=%.3f (+/-%.3f) | teste f1=%.3f roc_auc=%.3f",
+        "%s | CV %s=%.3f (+/-%.3f) | test f1=%.3f roc_auc=%.3f",
         name,
         settings.selection_metric,
         cv_mean,
@@ -176,18 +176,18 @@ def train_all_models(
     settings: Settings | None = None,
     registry: dict[str, BaseEstimator] | None = None,
 ) -> dict[str, dict[str, Any]]:
-    """Treina e avalia todos os modelos do registro.
+    """Trains and evaluates all models in the registry.
 
     Args:
-        x_train: Features de treino.
-        y_train: Alvo de treino.
-        x_test: Features de teste.
-        y_test: Alvo de teste.
-        settings: Configuração (usa :data:`SETTINGS` se omitida).
-        registry: Registro de modelos (usa :func:`get_model_registry` se omitido).
+        x_train: Training features.
+        y_train: Training target.
+        x_test: Test features.
+        y_test: Test target.
+        settings: Configuration (uses :data:`SETTINGS` if omitted).
+        registry: Model registry (uses :func:`get_model_registry` if omitted).
 
     Returns:
-        Mapa ``nome -> resultado`` (ver :func:`train_and_evaluate`).
+        Map ``name -> result`` (see :func:`train_and_evaluate`).
     """
     settings = settings or SETTINGS
     registry = registry or get_model_registry(settings)
@@ -201,26 +201,26 @@ def select_best_model(
     results: dict[str, dict[str, Any]],
     metric: str | None = None,
 ) -> tuple[str, dict[str, Any]]:
-    """Seleciona o melhor modelo pela média de CV da métrica de seleção.
+    """Selects the best model by the mean CV score of the selection metric.
 
-    A escolha usa o score de validação cruzada (no treino), não o conjunto de
-    teste, evitando viés de seleção.
+    The choice uses the cross-validation score (on training data), not the test
+    set, avoiding selection bias.
 
     Args:
-        results: Saída de :func:`train_all_models`.
-        metric: Métrica de desempate exibida (informativa).
+        results: Output of :func:`train_all_models`.
+        metric: Tiebreaker metric displayed (informational).
 
     Returns:
-        Par ``(nome, resultado)`` do modelo vencedor.
+        Pair ``(name, result)`` of the winning model.
 
     Raises:
-        ValueError: Se ``results`` estiver vazio.
+        ValueError: If ``results`` is empty.
     """
     if not results:
-        raise ValueError("Nenhum resultado de modelo para selecionar.")
+        raise ValueError("No model results to select from.")
     best_name = max(results, key=lambda name: results[name]["cv_mean"])
     logger.info(
-        "Modelo vencedor: %s (CV %s=%.3f)",
+        "Winning model: %s (CV %s=%.3f)",
         best_name,
         metric or results[best_name]["cv_metric"],
         results[best_name]["cv_mean"],

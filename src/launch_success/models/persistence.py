@@ -1,7 +1,7 @@
-"""Serialização e carregamento de pipelines treinados com ``joblib``.
+"""Serialisation and loading of trained pipelines with ``joblib``.
 
-Persiste o pipeline completo (pré-processamento + modelo) junto a metadados
-úteis para o app de inferência (nome do modelo, alvo, features, métricas).
+Persists the full pipeline (preprocessing + model) together with metadata
+useful for the inference app (model name, target, features, metrics).
 """
 
 from __future__ import annotations
@@ -26,16 +26,16 @@ def save_model(
     settings: Settings | None = None,
     metadata: dict[str, Any] | None = None,
 ) -> Path:
-    """Salva o pipeline treinado (e metadados opcionais) em disco.
+    """Saves the trained pipeline (and optional metadata) to disk.
 
     Args:
-        pipeline: Pipeline ajustado a persistir.
-        path: Caminho de destino; usa ``settings.best_model_path`` se omitido.
-        settings: Configuração (usa :data:`SETTINGS` se omitida).
-        metadata: Dicionário serializável salvo ao lado do modelo (``*.meta.json``).
+        pipeline: Fitted pipeline to persist.
+        path: Destination path; uses ``settings.best_model_path`` if omitted.
+        settings: Configuration (uses :data:`SETTINGS` if omitted).
+        metadata: Serialisable dictionary saved alongside the model (``*.meta.json``).
 
     Returns:
-        O caminho onde o modelo foi salvo.
+        The path where the model was saved.
     """
     settings = settings or SETTINGS
     model_path = Path(path) if path is not None else settings.best_model_path
@@ -45,7 +45,7 @@ def save_model(
     if metadata is not None:
         meta_path = model_path.with_suffix(".meta.json")
         meta_path.write_text(json.dumps(metadata, indent=2, default=str), encoding="utf-8")
-    logger.info("Modelo salvo em %s", model_path)
+    logger.info("Model saved to %s", model_path)
     return model_path
 
 
@@ -53,25 +53,25 @@ def load_model(
     path: str | Path | None = None,
     settings: Settings | None = None,
 ) -> Pipeline:
-    """Carrega um pipeline serializado.
+    """Loads a serialised pipeline.
 
     Args:
-        path: Caminho do artefato; usa ``settings.best_model_path`` se omitido.
-        settings: Configuração (usa :data:`SETTINGS` se omitida).
+        path: Path to the artefact; uses ``settings.best_model_path`` if omitted.
+        settings: Configuration (uses :data:`SETTINGS` if omitted).
 
     Returns:
-        O pipeline desserializado.
+        The deserialised pipeline.
 
     Raises:
-        ModelNotFoundError: Se o arquivo não existir.
+        ModelNotFoundError: If the file does not exist.
     """
     settings = settings or SETTINGS
     model_path = Path(path) if path is not None else settings.best_model_path
     if not model_path.exists():
         raise ModelNotFoundError(
-            f"Modelo não encontrado em {model_path}. Rode o treino (`make train`)."
+            f"Model not found at {model_path}. Run training first (`make train`)."
         )
-    logger.info("Modelo carregado de %s", model_path)
+    logger.info("Model loaded from %s", model_path)
     return joblib.load(model_path)
 
 
@@ -79,14 +79,14 @@ def load_metadata(
     path: str | Path | None = None,
     settings: Settings | None = None,
 ) -> dict[str, Any]:
-    """Carrega os metadados associados a um modelo, se existirem.
+    """Loads the metadata associated with a model, if it exists.
 
     Args:
-        path: Caminho do modelo (``*.joblib``); usa o padrão se omitido.
-        settings: Configuração (usa :data:`SETTINGS` se omitida).
+        path: Path to the model (``*.joblib``); uses the default if omitted.
+        settings: Configuration (uses :data:`SETTINGS` if omitted).
 
     Returns:
-        Dicionário de metadados, ou ``{}`` se não houver arquivo.
+        Metadata dictionary, or ``{}`` if no file is present.
     """
     settings = settings or SETTINGS
     model_path = Path(path) if path is not None else settings.best_model_path

@@ -1,4 +1,4 @@
-"""Testes das funções de transformação e da orquestração de ingestão."""
+"""Tests for the transformation functions and ingestion orchestration."""
 
 from __future__ import annotations
 
@@ -20,17 +20,17 @@ from launch_success.data.ingestion import (
 from launch_success.data.schemas import Core, Payload
 
 
-def test_aggregate_payload_mass_ignora_nulos() -> None:
+def test_aggregate_payload_mass_ignores_nulls() -> None:
     payloads = [Payload(mass_kg=2000), Payload(mass_kg=None), Payload(mass_kg=500)]
     assert aggregate_payload_mass(payloads) == 2500
 
 
-def test_aggregate_payload_mass_sem_massa_retorna_none() -> None:
+def test_aggregate_payload_mass_all_null_returns_none() -> None:
     assert aggregate_payload_mass([Payload(mass_kg=None)]) is None
     assert aggregate_payload_mass([]) is None
 
 
-def test_primary_orbit_pega_primeira_definida() -> None:
+def test_primary_orbit_picks_first_defined() -> None:
     payloads = [Payload(orbit=None), Payload(orbit="GTO"), Payload(orbit="LEO")]
     assert primary_orbit(payloads) == "GTO"
     assert primary_orbit([Payload(orbit=None)]) is None
@@ -53,7 +53,7 @@ def test_build_lookup() -> None:
     assert build_lookup(items, "name") == {"a": "Falcon 9", "b": "Falcon Heavy"}
 
 
-def test_resolve_launch_consolida_uma_linha(mock_api: dict[str, list[dict[str, Any]]]) -> None:
+def test_resolve_launch_consolidates_one_row(mock_api: dict[str, list[dict[str, Any]]]) -> None:
     rocket_lookup = build_lookup(mock_api["rockets"], "name")
     launchpad_lookup = build_lookup(mock_api["launchpads"], "name")
     payload_lookup = {p["id"]: p for p in mock_api["payloads"]}
@@ -81,7 +81,7 @@ def test_launches_to_dataframe_schema(mock_api: dict[str, list[dict[str, Any]]])
 
 
 class _FakeClient:
-    """Cliente falso que devolve o JSON mockado sem tocar a rede."""
+    """Fake client that returns the mocked JSON without touching the network."""
 
     def __init__(self, data: dict[str, list[dict[str, Any]]]) -> None:
         self._data = data
@@ -99,7 +99,7 @@ class _FakeClient:
         return self._data["launchpads"]
 
 
-def test_ingest_salva_csv_e_json(mock_api, tmp_settings) -> None:
+def test_ingest_saves_csv_and_json(mock_api, tmp_settings) -> None:
     client = _FakeClient(mock_api)
     frame = ingest(client=client, settings=tmp_settings, save=True)
 

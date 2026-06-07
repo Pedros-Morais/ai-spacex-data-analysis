@@ -1,12 +1,13 @@
-"""Registro de modelos candidatos.
+"""Candidate model registry.
 
-Fornece um dicionário ``nome -> estimador`` com hiperparâmetros vindos da
-configuração e ``random_state`` fixo. ``class_weight="balanced"`` é usado nos
-modelos que o suportam (regressão logística e random forest) para mitigar o
-desbalanceamento de classes.
+Provides a dictionary ``name -> estimator`` with hyperparameters sourced from
+the configuration and a fixed ``random_state``. ``class_weight="balanced"`` is
+used for models that support it (logistic regression and random forest) to
+mitigate class imbalance.
 
-XGBoost é **opcional**: só entra no registro se a biblioteca importar e carregar
-corretamente (depende do runtime OpenMP), mantendo o projeto funcional sem ela.
+XGBoost is **optional**: it is only added to the registry if the library imports
+and loads correctly (depends on the OpenMP runtime), keeping the project
+functional without it.
 """
 
 from __future__ import annotations
@@ -23,11 +24,11 @@ logger = logging.getLogger(__name__)
 
 
 def _xgboost_classifier(seed: int) -> BaseEstimator | None:
-    """Retorna um ``XGBClassifier`` se o XGBoost estiver disponível, senão ``None``."""
+    """Returns an ``XGBClassifier`` if XGBoost is available, otherwise ``None``."""
     try:
         from xgboost import XGBClassifier
     except Exception as exc:  # noqa: BLE001 - ImportError ou XGBoostError (libomp)
-        logger.warning("XGBoost indisponível, será ignorado: %s", exc)
+        logger.warning("XGBoost unavailable, skipping: %s", exc)
         return None
 
     return XGBClassifier(
@@ -43,14 +44,14 @@ def _xgboost_classifier(seed: int) -> BaseEstimator | None:
 
 
 def get_model_registry(settings: Settings | None = None) -> dict[str, BaseEstimator]:
-    """Constrói o dicionário de estimadores candidatos.
+    """Builds the dictionary of candidate estimators.
 
     Args:
-        settings: Configuração (usa :data:`SETTINGS` se omitida).
+        settings: Configuration (uses :data:`SETTINGS` if omitted).
 
     Returns:
-        Mapa ``nome -> estimador`` não-ajustado. Inclui XGBoost quando
-        disponível, garantindo sempre >= 3 modelos.
+        Map ``name -> unfitted estimator``. Includes XGBoost when available,
+        always guaranteeing >= 3 models.
     """
     settings = settings or SETTINGS
     seed = settings.seed
@@ -80,5 +81,5 @@ def get_model_registry(settings: Settings | None = None) -> dict[str, BaseEstima
     if xgb is not None:
         registry["xgboost"] = xgb
 
-    logger.info("Modelos candidatos: %s", ", ".join(registry))
+    logger.info("Candidate models: %s", ", ".join(registry))
     return registry

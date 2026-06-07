@@ -1,24 +1,24 @@
-"""Exceções customizadas do projeto.
+"""Custom exceptions for the project.
 
-Centralizar as exceções facilita o tratamento de erros nas camadas de
-ingestão, carregamento e validação de dados, evitando o uso de ``Exception``
-genérica e tornando o fluxo de erros explícito e testável.
+Centralising exceptions makes error handling easier across the ingestion,
+loading, and data validation layers, avoiding the use of the generic
+``Exception`` and making the error flow explicit and testable.
 """
 
 from __future__ import annotations
 
 
 class LaunchSuccessError(Exception):
-    """Exceção base para todos os erros do projeto."""
+    """Base exception for all project errors."""
 
 
 class IngestionError(LaunchSuccessError):
-    """Erro ao buscar ou consolidar dados da API da SpaceX."""
+    """Error while fetching or consolidating data from the SpaceX API."""
 
 
 class DataValidationError(LaunchSuccessError):
-    """Dados ausentes, vazios ou fora do schema esperado."""
+    """Data is missing, empty, or outside the expected schema."""
 
 
 class ModelNotFoundError(LaunchSuccessError):
-    """Tentativa de carregar um artefato de modelo inexistente."""
+    """Attempted to load a model artifact that does not exist."""

@@ -1,4 +1,4 @@
-"""Testes da limpeza: coerção de tipos, filtragem e tratamento de nulos."""
+"""Tests for cleaning: type coercion, filtering, and null handling."""
 
 from __future__ import annotations
 
@@ -10,7 +10,7 @@ from launch_success.exceptions import DataValidationError
 from launch_success.features.cleaning import clean_launches, coerce_boolean
 
 
-def test_coerce_boolean_variados() -> None:
+def test_coerce_boolean_various_inputs() -> None:
     series = pd.Series([True, False, "True", "false", 1, 0, "1", "0", None, "abc"])
     result = coerce_boolean(series)
     expected = [1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, np.nan, np.nan]
@@ -39,28 +39,28 @@ def _raw() -> pd.DataFrame:
     )
 
 
-def test_remove_upcoming_e_alvo_nulo() -> None:
+def test_removes_upcoming_and_null_target() -> None:
     cleaned = clean_launches(_raw(), target="success")
-    # Linha 2 (upcoming=True, success=None) deve sair.
+    # Row 2 (upcoming=True, success=None) must be dropped.
     assert len(cleaned) == 3
     assert cleaned["success"].notna().all()
 
 
-def test_coercao_de_tipos() -> None:
+def test_type_coercion() -> None:
     cleaned = clean_launches(_raw(), target="success")
-    assert cleaned["success"].dtype.kind in "iu"  # inteiro 0/1
+    assert cleaned["success"].dtype.kind in "iu"  # integer 0/1
     assert set(cleaned["success"].unique()) <= {0, 1}
     assert cleaned["reused"].dtype.kind == "f"  # float 0/1/NaN
     assert pd.api.types.is_numeric_dtype(cleaned["payload_mass_kg"])
 
 
-def test_alvo_alternativo_landing_success() -> None:
+def test_alternative_target_landing_success() -> None:
     cleaned = clean_launches(_raw(), target="landing_success")
-    # Linhas com landing_success nulo são descartadas para este alvo.
+    # Rows with null landing_success are dropped for this target.
     assert "landing_success" in cleaned.columns
     assert cleaned["landing_success"].notna().all()
 
 
-def test_alvo_inexistente_levanta_erro() -> None:
+def test_nonexistent_target_raises_error() -> None:
     with pytest.raises(DataValidationError):
         clean_launches(_raw(), target="nao_existe")
